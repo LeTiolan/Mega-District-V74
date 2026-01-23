@@ -42,7 +42,6 @@
             100% { opacity: 1; }
         }
 
-        /* UPDATED LARGER CROSSHAIR */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
             width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
@@ -79,6 +78,78 @@
             display: flex; justify-content: space-between;
             text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;
         }
+
+        #inventory-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; justify-content: center; align-items: center;
+            color: white; background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 30; opacity: 0; transition: opacity 0.4s ease;
+        }
+
+        .inventory-window { 
+            position: relative;
+            width: 850px; height: 580px; 
+            display: flex; gap: 30px; 
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px; border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+
+        .inv-header {
+            font-size: 2.2rem; letter-spacing: 10px; font-weight: 200; 
+            text-transform: uppercase; margin-bottom: 35px; border-left: 5px solid #ff4b2b;
+            padding-left: 20px;
+        }
+
+        .inv-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 12px; 
+            max-height: 400px; 
+            overflow-y: visible; 
+        }
+
+        .inv-slot {
+            aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;
+            transition: all 0.2s ease; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .inv-slot:hover { background: rgba(255, 255, 255, 0.1); border-color: #ff4b2b; }
+        .inv-slot.active { border: 2px solid #ff4b2b; background: rgba(255, 75, 43, 0.1); }
+
+        .item-dot { 
+            width: 14px; height: 14px; border-radius: 50%; 
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .inv-right {
+            flex: 0.7; background: rgba(255, 255, 255, 0.02); border-radius: 8px;
+            padding: 30px; border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; flex-direction: column;
+        }
+
+        #inv-item-name {
+            font-size: 1.1rem; font-weight: 800; color: #ff4b2b; 
+            text-transform: uppercase; margin-bottom: 12px; letter-spacing: 3px;
+        }
+
+        #inv-item-desc {
+            font-size: 0.8rem; line-height: 1.7; color: rgba(255,255,255,0.6); 
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        #inv-close-btn {
+            position: absolute; 
+            top: 15px; right: 15px; 
+            color: rgba(255,255,255,0.4); font-size: 0.65rem; letter-spacing: 3px; 
+            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+            background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 4px;
+        }
+        #inv-close-btn:hover { color: #ff4b2b; background: rgba(255,255,255,0.1); }
     </style>
     <script type="importmap">
         {
@@ -98,6 +169,7 @@
         <p>WASD — MOVE</p>
         <p>SHIFT — SPRINT</p>
         <p>SPACE — JUMP</p>
+        <p>TAB — INVENTORY</p>
         <p>F — TOGGLE FULLSCREEN</p>
         <p class="start-prompt">CLICK TO BEGIN</p>
     </div>
@@ -110,6 +182,22 @@
         <div class="stat-wrapper">
             <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
             <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
+        </div>
+    </div>
+
+    <div id="inventory-overlay">
+        <div class="inventory-window">
+            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
+            <div style="flex: 1.2; display: flex; flex-direction: column;">
+                <div class="inv-header">Cargo</div>
+                <div class="inv-grid" id="inv-grid-container"></div>
+            </div>
+            <div class="inv-right">
+                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
+                <div id="inv-item-name">NO_SELECTION</div>
+                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
+                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
+            </div>
         </div>
     </div>
 
@@ -127,16 +215,60 @@
         let leftUpper, rightUpper, leftFore, rightFore;
         const collidableBoxes = []; 
         const playerSize = 0.7;
+        let isInventoryOpen = false;
 
         init();
         animate();
+
+        // --- SUBTLE TEXTURE GENERATION ---
+        function createStonyTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#999999';
+            context.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 30000; i++) {
+                const x = Math.random() * 512; const y = Math.random() * 512;
+                const shade = Math.floor(Math.random() * 20) + 140; 
+                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`;
+                context.fillRect(x, y, 1, 1);
+            }
+            for (let i = 0; i < 400; i++) {
+                const x = Math.random() * 512; const y = Math.random() * 512;
+                const radius = Math.random() * 1.5 + 0.5; 
+                const shade = Math.floor(Math.random() * 20) + 110; 
+                context.fillStyle = `rgb(${shade},${shade},${shade})`;
+                context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(18, 18);
+            return texture;
+        }
+
+        function createLightTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#f7f7f7';
+            context.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 15000; i++) {
+                const x = Math.random() * 256; const y = Math.random() * 256;
+                const opacity = Math.random() * 0.05;
+                context.fillStyle = `rgba(0,0,0,${opacity})`;
+                context.fillRect(x, y, 1, 1);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
 
         function createBuilding(x, z) {
             const w = 12 + Math.random() * 8;
             const h = 10 + Math.random() * 15;
             const d = 12 + Math.random() * 8;
             const baseGeo = new THREE.BoxGeometry(w, h, d);
-            const baseMat = new THREE.MeshPhongMaterial({ color: 0x777777 });
+            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
             const base = new THREE.Mesh(baseGeo, baseMat);
             base.position.set(x, h/2, z);
             scene.add(base);
@@ -152,7 +284,6 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
@@ -166,7 +297,6 @@
             const inst = document.getElementById('instructions');
             const title = document.getElementById('menu-title');
             controls = new PointerLockControls(cameraGroup, document.body);
-            
             inst.addEventListener('click', () => controls.lock());
             
             controls.addEventListener('lock', () => {
@@ -175,9 +305,11 @@
             });
             
             controls.addEventListener('unlock', () => {
-                title.innerText = "PAUSED";
-                inst.style.display = 'flex';
-                setTimeout(() => inst.style.opacity = '1', 10);
+                if (!isInventoryOpen) {
+                    title.innerText = "PAUSED";
+                    inst.style.display = 'flex';
+                    setTimeout(() => inst.style.opacity = '1', 10);
+                }
             });
 
             const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
@@ -205,17 +337,16 @@
                 if (e.code === 'KeyD') moveRight = true;
                 if (e.code === 'ShiftLeft') isRunning = true;
                 if (e.code === 'Space' && canJump) { velocity.y += 10; canJump = false; }
-                
                 if (e.code === 'KeyF') {
                     if (!document.fullscreenElement) {
-                        document.documentElement.requestFullscreen().catch(err => {
-                            console.error(`Error: ${err.message}`);
-                        });
+                        document.documentElement.requestFullscreen().catch(err => console.error(err.message));
                         controls.lock();
                     } else {
                         document.exitFullscreen();
                     }
                 }
+                if (e.code === 'Tab') { e.preventDefault(); toggleInventory(); }
+                if (e.code === 'Escape' && isInventoryOpen) { toggleInventory(); }
             });
 
             document.addEventListener('keyup', (e) => {
@@ -233,11 +364,15 @@
             });
 
             const arena = 180;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ color: 0xaaaaaa }));
+            const stonyTex = createStonyTexture();
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(arena, arena), 
+                new THREE.MeshPhongMaterial({ map: stonyTex })
+            );
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            const wallMat = new THREE.MeshPhongMaterial({ color: 0x999999 });
+            const wallMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
             const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
             wallData.forEach(d => {
                 const w = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), wallMat);
@@ -253,7 +388,7 @@
                 if (i % 3 === 0) createBuilding(rx, rz);
                 else {
                     const h = Math.random() * 20 + 5;
-                    const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ color: 0x888888 }));
+                    const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff }));
                     p.position.set(rx, h/2, rz);
                     scene.add(p);
                     collidableBoxes.push(new THREE.Box3().setFromObject(p));
@@ -263,6 +398,8 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
             cameraGroup.position.set(0, 5, 0);
+
+            setupInventoryLogic();
         }
 
         function resolveCollisions() {
@@ -334,6 +471,49 @@
             }
             prevTime = time;
             renderer.render(scene, camera);
+        }
+
+        function setupInventoryLogic() {
+            const grid = document.getElementById('inv-grid-container');
+            const items = [
+                { name: "Suture Kit", desc: "Medical nanites for structural repair.", color: "#ff416c" },
+                { name: "Stim-Shot", desc: "Instant stamina recharge.", color: "#6dd5ed" },
+                { name: "Key-Card", desc: "District level 4 access.", color: "#ffffff" }
+            ];
+
+            for (let i = 0; i < 16; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inv-slot';
+                if (items[i]) {
+                    const dot = document.createElement('div');
+                    dot.className = 'item-dot';
+                    dot.style.backgroundColor = items[i].color;
+                    slot.appendChild(dot);
+                }
+                slot.onclick = () => {
+                    document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
+                    slot.classList.add('active');
+                    const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
+                    document.getElementById('inv-item-name').innerText = data.name;
+                    document.getElementById('inv-item-desc').innerText = data.desc;
+                };
+                grid.appendChild(slot);
+            }
+            document.getElementById('inv-close-btn').onclick = toggleInventory;
+        }
+
+        function toggleInventory() {
+            const overlay = document.getElementById('inventory-overlay');
+            isInventoryOpen = !isInventoryOpen;
+            if (isInventoryOpen) {
+                controls.unlock();
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            } else {
+                overlay.style.opacity = '0';
+                setTimeout(() => { if(!isInventoryOpen) overlay.style.display = 'none'; }, 400);
+                controls.lock();
+            }
         }
     </script>
 </body>
