@@ -3,23 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - Building District</title>
+    <title>Geometric Range - Full Screen District</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: monospace; background-color: #eeeeee; }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
         canvas { display: block; }
-        #instructions {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center; color: #333;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px; border: 1px solid #ccc;
-            user-select: none; z-index: 10; cursor: pointer;
+        
+        #vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.4);
+            pointer-events: none; z-index: 5;
         }
+
+        #instructions {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #111; background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            user-select: none; z-index: 20; cursor: pointer;
+            transition: opacity 0.4s ease;
+        }
+
+        #instructions h1 { 
+            font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; 
+        }
+        
+        #instructions p { 
+            font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; 
+        }
+
+        .start-prompt {
+            margin-top: 40px !important; font-weight: bold !important; color: #ff4b2b !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        /* UPDATED LARGER CROSSHAIR */
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 10px; height: 10px; margin-left: -5px; margin-top: -5px;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-radius: 50%; pointer-events: none;
+            width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 4px rgba(0,0,0,0.5);
+            border-radius: 50%; pointer-events: none; z-index: 10;
+            mix-blend-mode: difference;
+        }
+
+        #hud-container {
+            position: absolute; bottom: 30px; left: 30px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 10;
+        }
+
+        .stat-wrapper {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 15px; border-radius: 12px;
+            backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .bar-container {
+            width: 200px; height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px; overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
+        #health-fill { background: #ff416c; }
+        #stamina-fill { background: #6dd5ed; }
+
+        .stat-label {
+            color: white; font-size: 9px; font-weight: bold;
+            display: flex; justify-content: space-between;
+            text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;
         }
     </style>
     <script type="importmap">
@@ -32,22 +90,40 @@
     </script>
 </head>
 <body>
+    <div id="vignette"></div>
     <div id="crosshair"></div>
+    
     <div id="instructions">
-        <h1>BUILDING DISTRICT</h1>
-        <p>CLICK TO PLAY</p>
+        <h1 id="menu-title">MEGA DISTRICT</h1>
+        <p>WASD — MOVE</p>
+        <p>SHIFT — SPRINT</p>
+        <p>SPACE — JUMP</p>
+        <p>F — TOGGLE FULLSCREEN</p>
+        <p class="start-prompt">CLICK TO BEGIN</p>
+    </div>
+
+    <div id="hud-container">
+        <div class="stat-wrapper">
+            <div class="stat-label"><span>Health</span><span id="health-val">100 / 100</span></div>
+            <div class="bar-container"><div id="health-fill" class="bar-fill"></div></div>
+        </div>
+        <div class="stat-wrapper">
+            <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
+            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
+        </div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        let camera, scene, renderer, controls;
+        let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
         let bobTimer = 0;
-
+        
+        let health = 100, stamina = 100;
         let leftUpper, rightUpper, leftFore, rightFore;
         const collidableBoxes = []; 
         const playerSize = 0.7;
@@ -59,17 +135,12 @@
             const w = 12 + Math.random() * 8;
             const h = 10 + Math.random() * 15;
             const d = 12 + Math.random() * 8;
-
             const baseGeo = new THREE.BoxGeometry(w, h, d);
             const baseMat = new THREE.MeshPhongMaterial({ color: 0x777777 });
             const base = new THREE.Mesh(baseGeo, baseMat);
             base.position.set(x, h/2, z);
             scene.add(base);
-            
-            // Add to collision
             collidableBoxes.push(new THREE.Box3().setFromObject(base));
-
-            // Simple Flat Roof
             const roofGeo = new THREE.BoxGeometry(w + 1, 1, d + 1);
             const roofMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
             const roof = new THREE.Mesh(roofGeo, roofMat);
@@ -78,26 +149,37 @@
         }
 
         function init() {
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xdddddd);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            cameraGroup = new THREE.Group();
+            cameraGroup.add(camera);
+            scene.add(cameraGroup);
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
-            
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
             sunLight.position.set(5, 10, 7.5);
             scene.add(sunLight);
 
             const inst = document.getElementById('instructions');
-            controls = new PointerLockControls(camera, document.body);
+            const title = document.getElementById('menu-title');
+            controls = new PointerLockControls(cameraGroup, document.body);
             
             inst.addEventListener('click', () => controls.lock());
-            controls.addEventListener('lock', () => inst.style.display = 'none');
-            controls.addEventListener('unlock', () => inst.style.display = 'block');
-            scene.add(controls.getObject());
+            
+            controls.addEventListener('lock', () => {
+                inst.style.opacity = '0';
+                setTimeout(() => { if(controls.isLocked) inst.style.display = 'none'; }, 400);
+            });
+            
+            controls.addEventListener('unlock', () => {
+                title.innerText = "PAUSED";
+                inst.style.display = 'flex';
+                setTimeout(() => inst.style.opacity = '1', 10);
+            });
 
-            // --- ARMS (LOW PROFILE) ---
             const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
             const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
             const foreGeo = new THREE.CapsuleGeometry(0.1, 0.5, 4, 8);
@@ -117,19 +199,44 @@
             camera.add(rightUpper);
 
             document.addEventListener('keydown', (e) => {
-                const on = (e.code === 'KeyW' ? moveForward = true : e.code === 'KeyS' ? moveBackward = true : e.code === 'KeyA' ? moveLeft = true : e.code === 'KeyD' ? moveRight = true : e.code === 'ShiftLeft' ? isRunning = true : e.code === 'Space' ? (canJump ? (velocity.y += 10, canJump = false) : null) : null);
-            });
-            document.addEventListener('keyup', (e) => {
-                const off = (e.code === 'KeyW' ? moveForward = false : e.code === 'KeyS' ? moveBackward = false : e.code === 'KeyA' ? moveLeft = false : e.code === 'KeyD' ? moveRight = false : e.code === 'ShiftLeft' ? isRunning = false : null);
+                if (e.code === 'KeyW') moveForward = true;
+                if (e.code === 'KeyS') moveBackward = true;
+                if (e.code === 'KeyA') moveLeft = true;
+                if (e.code === 'KeyD') moveRight = true;
+                if (e.code === 'ShiftLeft') isRunning = true;
+                if (e.code === 'Space' && canJump) { velocity.y += 10; canJump = false; }
+                
+                if (e.code === 'KeyF') {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(err => {
+                            console.error(`Error: ${err.message}`);
+                        });
+                        controls.lock();
+                    } else {
+                        document.exitFullscreen();
+                    }
+                }
             });
 
-            // --- WORLD ---
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'KeyW') moveForward = false;
+                if (e.code === 'KeyS') moveBackward = false;
+                if (e.code === 'KeyA') moveLeft = false;
+                if (e.code === 'KeyD') moveRight = false;
+                if (e.code === 'ShiftLeft') isRunning = false;
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
             const arena = 180;
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ color: 0xaaaaaa }));
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            // Perimeter Walls
             const wallMat = new THREE.MeshPhongMaterial({ color: 0x999999 });
             const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
             wallData.forEach(d => {
@@ -139,15 +246,12 @@
                 collidableBoxes.push(new THREE.Box3().setFromObject(w));
             });
 
-            // MIX OF BUILDINGS AND PILLARS
             for (let i = 0; i < 70; i++) {
                 let rx = Math.random() * 150 - 75;
                 let rz = Math.random() * 150 - 75;
                 if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
-
-                if (i % 3 === 0) {
-                    createBuilding(rx, rz);
-                } else {
+                if (i % 3 === 0) createBuilding(rx, rz);
+                else {
                     const h = Math.random() * 20 + 5;
                     const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ color: 0x888888 }));
                     p.position.set(rx, h/2, rz);
@@ -155,27 +259,26 @@
                     collidableBoxes.push(new THREE.Box3().setFromObject(p));
                 }
             }
-
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
-            camera.position.set(0, 5, 0);
+            cameraGroup.position.set(0, 5, 0);
         }
 
         function resolveCollisions() {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(camera.position, new THREE.Vector3(playerSize, 2, playerSize));
+            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
             for (let box of collidableBoxes) {
                 if (playerBox.intersectsBox(box)) {
                     const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
                     const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
                     if (overlapX < overlapZ) {
-                        camera.position.x += overlapX * (camera.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
+                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
                         velocity.x = 0;
                     } else {
-                        camera.position.z += overlapZ * (camera.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
+                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
                         velocity.z = 0;
                     }
-                    playerBox.setFromCenterAndSize(camera.position, new THREE.Vector3(playerSize, 2, playerSize));
+                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
                 }
             }
         }
@@ -189,35 +292,44 @@
                 velocity.x -= velocity.x * 12.0 * delta;
                 velocity.z -= velocity.z * 12.0 * delta;
                 velocity.y -= 9.8 * 3.0 * delta; 
-
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                const speed = isRunning ? 220.0 : 130.0;
+                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                if (isRunning && isMoving && stamina > 0) {
+                    stamina = Math.max(0, stamina - 25 * delta);
+                } else if (stamina < 100) {
+                    stamina = Math.min(100, stamina + 15 * delta);
+                }
+
+                document.getElementById('stamina-fill').style.width = stamina + '%';
+                document.getElementById('stamina-val').textContent = `${Math.round(stamina)} / 100`;
+
+                const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
                 controls.moveForward(-velocity.z * delta);
                 controls.moveRight(-velocity.x * delta);
-                
-                camera.position.y += (velocity.y * delta);
-                if (camera.position.y < 5) {
-                    velocity.y = 0; camera.position.y = 5; canJump = true;
-                }
+                cameraGroup.position.y += (velocity.y * delta);
+                if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
 
                 resolveCollisions();
 
-                if (canJump && (moveForward || moveBackward || moveLeft || moveRight)) {
-                    bobTimer += delta * (isRunning ? 14 : 8);
-                    camera.position.y += Math.sin(bobTimer) * (isRunning ? 0.05 : 0.02);
+                if (canJump && isMoving) {
+                    const actualRunning = isRunning && stamina > 0;
+                    bobTimer += delta * (actualRunning ? 14 : 8);
+                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
+                    camera.position.x = Math.cos(bobTimer * 0.5) * (actualRunning ? 0.02 : 0.008);
+                    camera.rotation.z = Math.sin(bobTimer * 0.5) * (actualRunning ? 0.012 : 0.004);
                     leftUpper.rotation.x = Math.sin(bobTimer) * 0.2;
                     rightUpper.rotation.x = Math.cos(bobTimer) * 0.2;
-                    leftFore.rotation.x = 0.5 + Math.sin(bobTimer) * 0.2;
-                    rightFore.rotation.x = 0.5 + Math.cos(bobTimer) * 0.2;
                 } else {
+                    camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0, 0.1);
+                    camera.position.x = THREE.MathUtils.lerp(camera.position.x, 0, 0.1);
+                    camera.rotation.z = THREE.MathUtils.lerp(camera.rotation.z, 0, 0.1);
                     leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
-                    leftFore.rotation.x = 0.5; rightFore.rotation.x = 0.5;
                 }
             }
             prevTime = time;
