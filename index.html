@@ -308,6 +308,14 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
+            // --- FULLSCREEN RESIZE FIX START ---
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            // --- FULLSCREEN RESIZE FIX END ---
+
             const inst = document.getElementById('instructions');
             const title = document.getElementById('menu-title');
             const startBtn = document.getElementById('start-btn');
@@ -414,11 +422,10 @@
 
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
                 
-                // --- BOOSTED STAMINA SYSTEM ---
                 if (isRunning && isMoving && stamina > 0) {
-                    stamina = Math.max(0, stamina - 15 * delta); // Slower drain
+                    stamina = Math.max(0, stamina - 15 * delta);
                 } else {
-                    stamina = Math.min(100, stamina + 30 * delta); // Faster recharge
+                    stamina = Math.min(100, stamina + 30 * delta);
                 }
 
                 document.getElementById('stamina-fill').style.width = stamina + '%';
