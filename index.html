@@ -207,54 +207,37 @@
         const playerSize = 0.7;
         let isInventoryOpen = false;
 
-        /* --- GLOBAL AUDIO ACCESS --- */
-        let audioListener;
-
-        /* --- RE-USABLE MENU SOUNDS --- */
-        const playHoverSound = () => {
-            if (!audioListener) return;
-            const ctx = audioListener.context;
+        /* --- GLOBAL AUDIO HELPERS --- */
+        // We use this function for that "wooden clack" on hover for ALL menus
+        function playHoverSound() {
+            // Find existing listener or wait for init
+            const listener = camera.children.find(c => c instanceof THREE.AudioListener);
+            if (!listener) return;
+            const ctx = listener.context;
             
-            // Wooden "Tock"
-            const woodOsc = ctx.createOscillator();
-            const woodGain = ctx.createGain();
-            const woodFilter = ctx.createBiquadFilter();
-
-            woodOsc.type = 'triangle';
-            woodOsc.frequency.setValueAtTime(600, ctx.currentTime);
-            woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
-
-            woodFilter.type = 'bandpass';
-            woodFilter.frequency.value = 1200;
-            woodFilter.Q.value = 5;
-
-            woodGain.gain.setValueAtTime(0, ctx.currentTime);
-            woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005);
-            woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-
-            woodOsc.connect(woodFilter);
-            woodFilter.connect(woodGain);
-            woodGain.connect(ctx.destination);
-            woodOsc.start();
-            woodOsc.stop(ctx.currentTime + 0.07);
-        };
-
-        const playMenuClick = () => {
-            if (!audioListener) return;
-            const ctx = audioListener.context;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(200, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
+            const filter = ctx.createBiquadFilter();
+
+            // Wooden "Tock" Profile
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
+
+            filter.type = 'bandpass';
+            filter.frequency.value = 1200;
+            filter.Q.value = 5;
+
             gain.gain.setValueAtTime(0, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-            osc.connect(gain);
+            gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+
+            osc.connect(filter);
+            filter.connect(gain);
             gain.connect(ctx.destination);
             osc.start();
-            osc.stop(ctx.currentTime + 0.12);
-        };
+            osc.stop(ctx.currentTime + 0.07);
+        }
 
         /* --- SLIDE SYSTEM --- */
         let isSliding = false;
@@ -379,8 +362,8 @@
             cameraGroup.add(camera);
             scene.add(cameraGroup);
 
-            // Initialize Audio Listener early so menu sounds work
-            audioListener = new THREE.AudioListener();
+            // Audio Listener setup early so it's available for UI
+            const audioListener = new THREE.AudioListener();
             camera.add(audioListener);
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
@@ -405,12 +388,9 @@
             
             controls = new PointerLockControls(cameraGroup, document.body);
             
-            // --- LINK HOVER SOUND TO MAIN MENU BUTTON ---
+            // --- LINK WOOD HOVER TO START BUTTON ---
             startBtn.addEventListener('mouseenter', () => playHoverSound());
-            startBtn.addEventListener('mousedown', () => {
-                playMenuClick();
-                controls.lock();
-            });
+            startBtn.addEventListener('mousedown', () => controls.lock());
             
             controls.addEventListener('lock', () => {
                 inst.style.opacity = '0';
@@ -601,24 +581,26 @@
                     dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color;
                     slot.appendChild(dot);
                 }
+                
+                // --- LINK WOOD HOVER TO INVENTORY SLOTS ---
+                slot.addEventListener('mouseenter', () => playHoverSound());
+                
                 slot.onclick = () => {
-                    playMenuClick();
                     document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
                     slot.classList.add('active');
                     const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
                     document.getElementById('inv-item-name').innerText = data.name;
                     document.getElementById('inv-item-desc').innerText = data.desc;
                 };
-                slot.addEventListener('mouseenter', () => playHoverSound());
                 grid.appendChild(slot);
             }
+            
             const closeBtn = document.getElementById('inv-close-btn');
             closeBtn.onclick = toggleInventory;
             closeBtn.addEventListener('mouseenter', () => playHoverSound());
         }
 
         function toggleInventory() {
-            playMenuClick();
             const overlay = document.getElementById('inventory-overlay');
             isInventoryOpen = !isInventoryOpen;
             if (isInventoryOpen) {
@@ -635,11 +617,37 @@
         init();
         animate();
 
-        /* --- AMBIENT WIND SYSTEM --- */
+        /* --- SEPARATE AMBIENT WIND & ENVIRONMENT SYSTEM --- */
         (function() {
-            let districtWind;
+            let districtWind, audioListener;
             let isPlaying = false;
             let nextBirdTime = 0;
+
+            const setupEnvironment = () => {
+                // Find existing listener or create if somehow missing
+                audioListener = camera.children.find(c => c instanceof THREE.AudioListener);
+                if(!audioListener) {
+                    audioListener = new THREE.AudioListener();
+                    camera.add(audioListener);
+                }
+
+                districtWind = new THREE.Audio(audioListener);
+                const ctx = audioListener.context;
+                const bufferSize = 2 * ctx.sampleRate;
+                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+                districtWind.setBuffer(noiseBuffer);
+                districtWind.setLoop(true);
+                districtWind.setVolume(0);
+
+                const windFilter = ctx.createBiquadFilter();
+                windFilter.type = 'lowpass';
+                windFilter.frequency.value = 250; 
+                districtWind.setFilter(windFilter);
+            };
 
             const playBirdChirp = () => {
                 const ctx = audioListener.context;
@@ -658,24 +666,17 @@
                 osc.stop(ctx.currentTime + 0.3);
             };
 
+            setupEnvironment();
+
             const originalAnimate = animate;
             animate = function() {
                 originalAnimate(); 
                 if (controls.isLocked) {
                     const ctx = audioListener.context;
                     if (!isPlaying) {
-                        districtWind = new THREE.Audio(audioListener);
-                        const bufferSize = 2 * ctx.sampleRate;
-                        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                        const output = noiseBuffer.getChannelData(0);
-                        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-                        districtWind.setBuffer(noiseBuffer);
-                        districtWind.setLoop(true);
-                        const windFilter = ctx.createBiquadFilter();
-                        windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
-                        districtWind.setFilter(windFilter);
                         districtWind.play();
                         isPlaying = true;
+                        nextBirdTime = ctx.currentTime + 5;
                     }
                     const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
                     const targetVol = 0.45 + Math.min(currentSpeed, 0.3); 
@@ -684,7 +685,7 @@
                         playBirdChirp();
                         nextBirdTime = ctx.currentTime + (5 + Math.random() * 10);
                     }
-                } else if (isPlaying && districtWind) {
+                } else if (isPlaying) {
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
                     if (districtWind.getVolume() < 0.01) {
                         districtWind.pause();
@@ -694,40 +695,59 @@
             };
         })();
 
-        /* --- FOOTSTEP SYSTEM --- */
+        /* --- SEPARATE METALLIC FOOTSTEP SYSTEM --- */
         (function() {
             let nextStepTime = 0;
 
             const playMetallicStep = (volume) => {
-                const ctx = audioListener.context;
+                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
+                if (!listener) return;
+                const ctx = listener.context;
+                
                 const osc = ctx.createOscillator();
                 const noise = ctx.createBufferSource();
                 const gain = ctx.createGain();
                 const filter = ctx.createBiquadFilter();
+
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(2500, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
+
                 const bufferSize = ctx.sampleRate * 0.1;
                 const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 noise.buffer = buffer;
-                filter.type = 'bandpass'; filter.frequency.value = 800; filter.Q.value = 1;
+
+                filter.type = 'bandpass';
+                filter.frequency.value = 800;
+                filter.Q.value = 1;
+
                 gain.gain.setValueAtTime(0, ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(volume * 0.15, ctx.currentTime + 0.01);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                osc.connect(gain); noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
-                osc.start(); noise.start(); osc.stop(ctx.currentTime + 0.1); noise.stop(ctx.currentTime + 0.1);
+
+                osc.connect(gain);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                noise.start();
+                osc.stop(ctx.currentTime + 0.1);
+                noise.stop(ctx.currentTime + 0.1);
             };
 
             const originalAnimate = animate;
             animate = function() {
                 originalAnimate();
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                
                 if (controls.isLocked && canJump && isMoving && !isSliding) {
                     const time = performance.now();
                     const actualRunning = isRunning && stamina > 0;
                     const stepInterval = actualRunning ? 300 : 500; 
+
                     if (time > nextStepTime) {
                         playMetallicStep(actualRunning ? 1.2 : 0.7);
                         nextStepTime = time + stepInterval;
