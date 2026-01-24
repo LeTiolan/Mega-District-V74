@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V39.2 Subdued Foundation</title>
+    <title>Robot M.A.N.U.L. - Optimized</title>
     <style>
-        /* PRIME FOUNDATION STYLES */
-        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', monospace; background-color: #eeeeee; }
+        body { margin: 0; overflow: hidden; font-family: monospace; background-color: #111; }
         canvas { display: block; }
-        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
-        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
-        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.05s linear; }
-        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
-        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; color: #111; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); z-index: 20; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 1.5px solid rgba(255, 255, 255, 0.4); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
-        .start-prompt { font-weight: bold; color: #ff4b2b; cursor: pointer; padding: 12px 40px; letter-spacing: 5px; text-transform: uppercase; border: 1px solid #ff4b2b; margin-top: 20px; }
+        #loading-screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #eeeeee; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 100; 
+        }
+        .loader-container { width: 60%; height: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; overflow: hidden; margin-top: 20px; }
+        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.3s; }
+        #instructions { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: none; flex-direction: column; justify-content: center; 
+            align-items: center; color: #111; background: rgba(255, 255, 255, 0.9); 
+            z-index: 20; 
+        }
+        .start-prompt { font-weight: bold; color: #ff4b2b; cursor: pointer; padding: 15px 30px; border: 2px solid #ff4b2b; text-transform: uppercase; }
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -22,14 +28,14 @@
 </head>
 <body>
     <div id="loading-screen">
-        <div class="loader-title">LOADING</div>
+        <div style="letter-spacing: 5px; color: #111;">INITIALIZING M.A.N.U.L.</div>
         <div class="loader-container"><div id="loader-fill"></div></div>
     </div>
-    <div id="crosshair"></div>
+
     <div id="instructions">
-        <h1 style="letter-spacing:10px;">MEGA DISTRICT</h1>
-        <p>W,A,S,D — MOVE | V — TOGGLE VIEW</p>
-        <div class="start-prompt" id="start-btn">CLICK TO BEGIN</div>
+        <h1>SYSTEM READY</h1>
+        <p>W,A,S,D to Walk | V to Toggle Camera</p>
+        <div class="start-prompt" id="start-btn">START ENGINE</div>
     </div>
 
     <script type="module">
@@ -38,27 +44,28 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         let camera, scene, renderer, controls, cameraGroup;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
-        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
-        let prevTime = performance.now();
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let robotMesh, robotMixer, robotIdle, robotWalk;
         let isThirdPerson = false;
         let headNodes = [];
-        let bobPhase = 0;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let prevTime = performance.now();
 
-        // I HAVE REPLACED THE PATH BELOW WITH A PUBLIC LINK
+        // High-compatibility model URL
         const MODEL_PATH = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb'; 
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xdddddd);
+            scene.background = new THREE.Color(0xcccccc);
+            
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
-            scene.add(hemiLight);
+            const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+            scene.add(light);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -66,63 +73,90 @@
 
             controls = new PointerLockControls(cameraGroup, document.body);
             document.getElementById('start-btn').addEventListener('click', () => controls.lock());
+            
             controls.addEventListener('lock', () => document.getElementById('instructions').style.display = 'none');
             controls.addEventListener('unlock', () => document.getElementById('instructions').style.display = 'flex');
 
-            // Ground
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshPhongMaterial({ color: 0x555555 }));
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            // Load Robot
             const loader = new GLTFLoader();
+            
+            // Start the loading bar
+            let loadPercent = 0;
+            const bar = document.getElementById('loader-fill');
+            const fakeLoad = setInterval(() => {
+                if (loadPercent < 90) {
+                    loadPercent += 1;
+                    bar.style.width = loadPercent + '%';
+                }
+            }, 30);
+
             loader.load(MODEL_PATH, (gltf) => {
+                clearInterval(fakeLoad);
+                bar.style.width = '100%';
+                
                 robotMesh = gltf.scene;
                 robotMesh.scale.set(0.3, 0.3, 0.3);
-                robotMesh.position.set(0, -1.8, -0.2);
+                robotMesh.position.set(0, -1.8, 0);
                 cameraGroup.add(robotMesh);
 
                 robotMesh.traverse(child => {
-                    if (child.isMesh) {
-                        const name = child.name.toLowerCase();
-                        if (name.includes('head') || name.includes('helmet') || name.includes('eye')) headNodes.push(child);
+                    if (child.isMesh && (child.name.toLowerCase().includes('head') || child.name.toLowerCase().includes('neck'))) {
+                        headNodes.push(child);
                     }
                 });
 
                 robotMixer = new THREE.AnimationMixer(robotMesh);
-                robotIdle = robotMixer.clipAction(gltf.animations.find(a => a.name.toLowerCase().includes('idle')) || gltf.animations[0]);
-                robotWalk = robotMixer.clipAction(gltf.animations.find(a => a.name.toLowerCase().includes('walk')) || gltf.animations[1]);
+                robotIdle = robotMixer.clipAction(gltf.animations[2]); // Idle
+                robotWalk = robotMixer.clipAction(gltf.animations[10]); // Walk
                 robotIdle.play();
 
+                // Small delay to show 100% before hiding screen
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').style.display = 'none';
+                        document.getElementById('instructions').style.display = 'flex';
+                    }, 500);
+                }, 500);
+            }, undefined, (error) => {
+                console.error("Robot load failed", error);
+                // Fail-safe: Enter game anyway if robot fails
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('instructions').style.display = 'flex';
             });
 
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'KeyW') moveForward = true;
-                if (e.code === 'KeyS') moveBackward = true;
-                if (e.code === 'KeyA') moveLeft = true;
-                if (e.code === 'KeyD') moveRight = true;
-                if (e.code === 'KeyV') {
-                    isThirdPerson = !isThirdPerson;
-                    if (isThirdPerson) {
-                        camera.position.set(0, 2, 5); // Move camera back
-                        robotMesh.position.set(0, -1.8, 0);
-                    } else {
-                        camera.position.set(0, 0, 0); // Reset to 1st person
-                        robotMesh.position.set(0, -1.8, -0.2);
-                    }
-                }
-            });
-
-            window.addEventListener('keyup', (e) => {
-                if (e.code === 'KeyW') moveForward = false;
-                if (e.code === 'KeyS') moveBackward = false;
-                if (e.code === 'KeyA') moveLeft = false;
-                if (e.code === 'KeyD') moveRight = false;
-            });
-
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('keyup', onKeyUp);
             animate();
+        }
+
+        function onKeyDown(e) {
+            if (e.code === 'KeyW') moveForward = true;
+            if (e.code === 'KeyS') moveBackward = true;
+            if (e.code === 'KeyA') moveLeft = true;
+            if (e.code === 'KeyD') moveRight = true;
+            if (e.code === 'KeyV') toggleView();
+        }
+
+        function onKeyUp(e) {
+            if (e.code === 'KeyW') moveForward = false;
+            if (e.code === 'KeyS') moveBackward = false;
+            if (e.code === 'KeyA') moveLeft = false;
+            if (e.code === 'KeyD') moveRight = false;
+        }
+
+        function toggleView() {
+            isThirdPerson = !isThirdPerson;
+            if (isThirdPerson) {
+                camera.position.set(0, 2, 4);
+                robotMesh.position.set(0, -1.8, 0);
+            } else {
+                camera.position.set(0, 0, 0);
+                robotMesh.position.set(0, -1.8, -0.2);
+            }
         }
 
         function animate() {
@@ -146,14 +180,13 @@
                 if (robotMixer) {
                     robotMixer.update(delta);
                     const moving = moveForward || moveBackward || moveLeft || moveRight;
-                    if (moving) {
-                        if (!robotWalk.isRunning()) { robotIdle.stop(); robotWalk.play(); }
-                    } else {
-                        if (!robotIdle.isRunning()) { robotWalk.stop(); robotIdle.play(); }
+                    if (moving && !robotWalk.isRunning()) {
+                        robotIdle.stop(); robotWalk.play();
+                    } else if (!moving && !robotIdle.isRunning()) {
+                        robotWalk.stop(); robotIdle.play();
                     }
                 }
-
-                // Hide head in 1st person
+                
                 headNodes.forEach(node => { node.visible = isThirdPerson; });
             }
             prevTime = time;
@@ -161,14 +194,6 @@
         }
 
         init();
-        
-        // Fake loader progress
-        let progress = 0;
-        const loadInt = setInterval(() => {
-            progress += 5;
-            document.getElementById('loader-fill').style.width = progress + '%';
-            if(progress >= 100) clearInterval(loadInt);
-        }, 50);
     </script>
 </body>
 </html>
