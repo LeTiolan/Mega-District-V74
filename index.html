@@ -207,6 +207,9 @@
         const playerSize = 0.7;
         let isInventoryOpen = false;
 
+        // Global sound function to be defined later
+        let playMenuClick = () => {};
+
         /* --- SLIDE SYSTEM --- */
         let isSliding = false;
         let slideTimer = 0;
@@ -351,7 +354,10 @@
             const startBtn = document.getElementById('start-btn');
             
             controls = new PointerLockControls(cameraGroup, document.body);
-            startBtn.addEventListener('mousedown', () => controls.lock());
+            startBtn.addEventListener('mousedown', () => {
+                playMenuClick(); // Click Sound
+                controls.lock();
+            });
             
             controls.addEventListener('lock', () => {
                 inst.style.opacity = '0';
@@ -360,6 +366,7 @@
             
             controls.addEventListener('unlock', () => {
                 if (!isInventoryOpen) {
+                    playMenuClick(); // Click Sound on pause
                     title.classList.remove('animate-type');
                     title.innerText = "PAUSED";
                     inst.style.display = 'flex';
@@ -543,6 +550,7 @@
                     slot.appendChild(dot);
                 }
                 slot.onclick = () => {
+                    playMenuClick(); // Click Sound on item selection
                     document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
                     slot.classList.add('active');
                     const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
@@ -555,6 +563,7 @@
         }
 
         function toggleInventory() {
+            playMenuClick(); // Click Sound on entry/exit
             const overlay = document.getElementById('inventory-overlay');
             isInventoryOpen = !isInventoryOpen;
             if (isInventoryOpen) {
@@ -660,32 +669,25 @@
                 const resonance = ctx.createBiquadFilter(); 
                 const gain = ctx.createGain();
 
-                // 1. FILTERED NOISE: Adds the "ceramic crunch"
                 const bufferSize = ctx.sampleRate * 0.1;
                 const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
                 noise.buffer = buffer;
 
-                // 2. FULL BASS: Triangle wave for a clean, heavy "thud"
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(120, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.03);
                 
-                // 3. METALLIC RING: Ringing "ping" frequency
                 resonance.type = 'bandpass';
                 resonance.frequency.value = 450; 
                 resonance.Q.value = 15;          
 
-                // 4. LOW PASS: Removes sharp static
                 filter.type = 'lowpass';
                 filter.frequency.value = 600;
 
-                // --- LOUDER SETTINGS ---
                 gain.gain.setValueAtTime(0, ctx.currentTime);
-                // Increased multiplier from 0.4 to 1.2 for more impact
                 gain.gain.linearRampToValueAtTime(volume * 1.2, ctx.currentTime + 0.005);
-                // Extended decay slightly to 0.25 to make the weight "echo" more
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
 
                 osc.connect(gain);
@@ -715,6 +717,51 @@
                         nextStepTime = time + stepInterval;
                     }
                 }
+            };
+        })();
+
+        /* --- SOFT GUMMY CLACKY BUTTON SYSTEM --- */
+        (function() {
+            playMenuClick = () => {
+                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
+                if (!listener) return;
+                const ctx = listener.context;
+
+                // 1. THE GUMMY BODY (Low Resonant Pop)
+                const gummyOsc = ctx.createOscillator();
+                const gummyGain = ctx.createGain();
+                
+                gummyOsc.type = 'sine';
+                gummyOsc.frequency.setValueAtTime(200, ctx.currentTime);
+                gummyOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
+                
+                gummyGain.gain.setValueAtTime(0, ctx.currentTime);
+                gummyGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005);
+                gummyGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+
+                // 2. THE CLACKY CLICK (High Transient)
+                const clackOsc = ctx.createOscillator();
+                const clackGain = ctx.createGain();
+                
+                clackOsc.type = 'sine';
+                clackOsc.frequency.setValueAtTime(3500, ctx.currentTime);
+                clackOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.015);
+                
+                clackGain.gain.setValueAtTime(0, ctx.currentTime);
+                clackGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.002);
+                clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+
+                // Connections
+                gummyOsc.connect(gummyGain);
+                gummyGain.connect(ctx.destination);
+                
+                clackOsc.connect(clackGain);
+                clackGain.connect(ctx.destination);
+
+                gummyOsc.start();
+                clackOsc.start();
+                gummyOsc.stop(ctx.currentTime + 0.12);
+                clackOsc.stop(ctx.currentTime + 0.12);
             };
         })();
     </script>
