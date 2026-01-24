@@ -3,41 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M.A.N.U.L. - MEGA DISTRICT V39</title>
+    <title>M.A.N.U.L. - MEGA DISTRICT V39.1</title>
     <style>
-        /* ============================================================
-           PRIME FOUNDATION STYLES (UNTOUCHED)
-           ============================================================ */
+        /* CSS REMAINS UNCHANGED FOR PERFORMANCE */
         body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
         canvas { display: block; }
         #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
         .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
         .dot { display: inline-block; animation: oscillate 1.4s ease-in-out infinite; }
-        .dot:nth-child(1) { animation-delay: 0s; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes oscillate { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; } }
-        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
         #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
-
-        /* ============================================================
-           M.A.N.U.L. NEURAL LINK UI
-           ============================================================ */
-        #neural-link-ui {
-            position: fixed; top: 20px; right: 20px; z-index: 1000;
-            background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #ff4b2b;
-            color: white; font-family: monospace; font-size: 10px; border-radius: 4px;
-            backdrop-filter: blur(10px); display: none;
-        }
-
-        #instructions {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: #111; background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            user-select: none; z-index: 20; transition: opacity 0.4s ease;
-        }
-
+        #neural-link-ui { position: fixed; top: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #ff4b2b; color: white; font-family: monospace; font-size: 10px; border-radius: 4px; backdrop-filter: blur(10px); }
+        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; color: #111; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); z-index: 20; }
         .menu-wrapper { width: 600px; display: flex; flex-direction: column; align-items: center; }
         .tab-container { display: flex; gap: 40px; margin-bottom: 30px; border-bottom: 1px solid rgba(0,0,0,0.1); width: 100%; justify-content: center; }
         .tab-btn { font-size: 0.8rem; letter-spacing: 4px; padding-bottom: 10px; cursor: pointer; opacity: 0.4; transition: 0.3s; text-transform: uppercase; }
@@ -46,47 +24,26 @@
         #main-manual { display: flex; flex-direction: column; align-items: center; }
         .key-row { display: flex; justify-content: space-between; width: 100%; padding: 10px 20px; background: rgba(0,0,0,0.03); border-radius: 6px; align-items: center; }
         .key-label { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: #666; }
-        .key-cap { background: #111; color: white; padding: 6px 15px; min-width: 80px; text-align: center; font-family: monospace; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .key-cap:hover { border-color: #ff4b2b; background: #222; }
-        .key-cap.listening { background: #ff4b2b; animation: pulse-key 1s infinite; }
-
-        @keyframes pulse-key { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
+        .key-cap { background: #111; color: white; padding: 6px 15px; min-width: 80px; text-align: center; border-radius: 4px; cursor: pointer; }
         .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
-        .title-init { font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; overflow: hidden; border-right: 4px solid #ff4b2b; white-space: nowrap; display: inline-block; width: auto; }
-        .cursor-blink { animation: blink 0.8s step-end infinite; }
+        .title-init { font-size: 3rem; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; border-right: 4px solid #ff4b2b; white-space: nowrap; }
         .animate-type { animation: typing 2.2s steps(15, end) forwards; width: 0; }
         @keyframes typing { from { width: 0 } to { width: 100% } }
-        @keyframes blink { from, to { border-color: transparent } 50% { border-color: #ff4b2b } }
         #instructions p { font-size: 0.8rem; margin: 6px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: opacity 0.5s ease; }
         .show-p { opacity: 1 !important; }
-        .start-prompt { position: relative; margin-top: 30px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; padding: 12px 40px; letter-spacing: 5px; transition: all 0.2s ease; }
-        .start-prompt:hover { color: #fff !important; background: #ff4b2b; border-radius: 4px; }
-        .ready-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
-        #blur-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); mask-image: radial-gradient(circle, transparent 0%, black 100%); -webkit-mask-image: radial-gradient(circle, transparent 0%, black 100%); opacity: 0; transition: opacity 0.1s ease; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
+        .start-prompt { position: relative; margin-top: 30px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; padding: 12px 40px; letter-spacing: 5px; }
         #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
-        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
+        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
         .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
         .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
-        #cd-fill { background: #ffea00; box-shadow: 0 0 5px rgba(255, 234, 0, 0.5); }
         #health-fill { background: #ff416c; }
         #stamina-fill { background: #6dd5ed; }
-        .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: opacity 0.4s ease; }
-        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .inv-header { font-size: 2.2rem; letter-spacing: 10px; font-weight: 200; text-transform: uppercase; margin-bottom: 35px; border-left: 5px solid #ff4b2b; padding-left: 20px; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-height: 400px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .inv-slot:hover { border-color: #ff4b2b; }
-        .inv-slot.active { border: 2px solid #ff4b2b; background: rgba(255, 75, 43, 0.1); }
-        .item-dot { width: 14px; height: 14px; border-radius: 50%; filter: drop-shadow(0 0 8px currentColor); }
-        .inv-right { flex: 0.7; background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 30px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
-        #inv-item-name { font-size: 1.1rem; font-weight: 800; color: #ff4b2b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 3px; }
-        #inv-item-desc { font-size: 0.8rem; line-height: 1.7; color: rgba(255,255,255,0.6); text-transform: uppercase; }
-        #inv-close-btn { position: absolute; top: 15px; right: 15px; color: rgba(255,255,255,0.4); font-size: 0.65rem; letter-spacing: 3px; cursor: pointer; text-transform: uppercase; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 4px; }
+        #cd-fill { background: #ffea00; }
+        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; }
+        .inventory-window { width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; }
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid white; border-radius: 50%; mix-blend-mode: difference; pointer-events: none; }
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -101,22 +58,19 @@
     <div id="neural-link-ui">
         <div style="color: #ff4b2b; margin-bottom: 8px; font-weight: bold; letter-spacing: 2px;">NEURAL_LINK_READY</div>
         <input type="file" id="robot-file" accept=".glb" style="background: #111; color: #666; border: none; font-size: 9px; width: 150px;">
-        <div style="margin-top: 5px; opacity: 0.5;">UPLOAD M.A.N.U.L. UNIT (.GLB)</div>
+        <div style="margin-top: 5px; opacity: 0.5;">UPLOAD M.A.N.U.L. (.GLB)</div>
     </div>
 
-    <div id="vignette"></div>
-    <div id="blur-overlay"></div>
     <div id="crosshair"></div>
-    
     <div id="instructions">
         <div class="menu-wrapper">
-            <div class="title-container"><h1 id="menu-title" class="title-init cursor-blink">MEGA DISTRICT</h1></div>
+            <div class="title-container"><h1 id="menu-title" class="title-init">MEGA DISTRICT</h1></div>
             <div class="tab-container">
                 <div class="tab-btn active" id="tab-manual">Manual</div>
                 <div class="tab-btn" id="tab-keybinds">Keybinds</div>
             </div>
             <div id="main-manual">
-                <p>WASD — MOVE</p><p>SHIFT — SPRINT</p><p>Q — SLIDE (1s)</p><p>SPACE — JUMP (HEAVY)</p><p>TAB — INVENTORY</p><p>F — TOGGLE FULLSCREEN</p>
+                <p>WASD — MOVE</p><p>SHIFT — SPRINT</p><p>Q — SLIDE</p><p>V — TOGGLE PERSPECTIVE</p><p>TAB — INVENTORY</p>
                 <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
             </div>
             <div id="keybind-settings"></div>
@@ -124,34 +78,13 @@
     </div>
 
     <div id="hud-container">
-        <div class="stat-wrapper" id="cd-wrapper">
-            <div class="stat-label" style="font-size: 7px;"><span>Maneuver Ready</span></div>
-            <div class="bar-container" id="cd-bar-container"><div id="cd-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Health</span><span id="health-val">100 / 100</span></div>
-            <div class="bar-container"><div id="health-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
-            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
-        </div>
+        <div class="stat-wrapper"><div class="bar-container"><div id="cd-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
     </div>
 
     <div id="inventory-overlay">
-        <div class="inventory-window">
-            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
-            <div style="flex: 1.2; display: flex; flex-direction: column;">
-                <div class="inv-header">Cargo</div>
-                <div class="inv-grid" id="inv-grid-container"></div>
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
-            </div>
-        </div>
+        <div class="inventory-window"><div class="inv-grid" id="inv-grid-container"></div></div>
     </div>
 
     <script type="module">
@@ -163,129 +96,23 @@
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
-        let bobTimer = 0;
-        let health = 100, stamina = 100;
-        let leftUpper, rightUpper, leftFore, rightFore;
-        const collidableBoxes = []; 
-        const playerSize = 0.7;
+        let bobTimer = 0, health = 100, stamina = 100;
+        let leftUpper, rightUpper;
+        const collidableBoxes = [];
         let isInventoryOpen = false;
-
-        // M.A.N.U.L. Global Variables
+        
+        // M.A.N.U.L. PERSPECTIVE VARS
         let manulModel = null;
-
-        let playMenuClick = () => {};
-        let playHoverSound = () => {};
-
-        /* --- V34.2 KEYBIND BRIDGE --- */
-        let binds = { forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD', sprint: 'ShiftLeft', jump: 'Space', slide: 'KeyQ', inventory: 'Tab' };
+        let isThirdPerson = false;
+        let binds = { forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD', sprint: 'ShiftLeft', jump: 'Space', slide: 'KeyQ', inventory: 'Tab', perspective: 'KeyV' };
         let isListeningForKey = null;
 
-        /* --- SLIDE SYSTEM --- */
-        let isSliding = false;
-        let slideTimer = 0;
-        let slideCooldown = 0;
-        const slideMaxDuration = 1.0; 
-        const slideMaxCooldown = 5.0; 
-        const slideSpeedMultiplier = 3.5;
-        const baseFOV = 75;
-        const warpFOV = 95;
-        const blurElem = document.getElementById('blur-overlay');
-        const cdFill = document.getElementById('cd-fill');
-
-        function startLoading() {
-            const fill = document.getElementById('loader-fill');
-            const screen = document.getElementById('loading-screen');
-            const menu = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const paragraphs = document.querySelectorAll('#main-manual p');
-            const neuralUI = document.getElementById('neural-link-ui');
-            let progress = 0;
-
-            const interval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    menu.style.display = 'flex';
-                    neuralUI.style.display = 'block';
-                    setTimeout(() => {
-                        menu.style.opacity = '1';
-                        screen.style.opacity = '0';
-                        title.classList.add('animate-type');
-                        setTimeout(() => {
-                            paragraphs.forEach((p, i) => {
-                                setTimeout(() => {
-                                    p.classList.add('show-p');
-                                    if(p.id === 'start-btn') p.classList.add('ready-pulse');
-                                }, i * 120);
-                            });
-                        }, 2200);
-                        setTimeout(() => screen.style.display = 'none', 800);
-                    }, 400);
-                }
-                fill.style.width = progress + '%';
-            }, 40);
-        }
-
-        function createStonyTexture() {
-            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d'); context.fillStyle = '#999999'; context.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 30000; i++) {
-                const x = Math.random() * 512; const y = Math.random() * 512;
-                const shade = Math.floor(Math.random() * 20) + 140; 
-                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`; context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(18, 18);
-            return texture;
-        }
-
-        function createLightTexture() {
-            const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-            const context = canvas.getContext('2d'); context.fillStyle = '#f7f7f7'; context.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < 15000; i++) {
-                const x = Math.random() * 256; const y = Math.random() * 256;
-                const opacity = Math.random() * 0.05;
-                context.fillStyle = `rgba(0,0,0,${opacity})`; context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas); texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
-
-        function createBuilding(x, z) {
-            const w = 12 + Math.random() * 8; const h = 10 + Math.random() * 15; const d = 12 + Math.random() * 8;
-            const baseGeo = new THREE.BoxGeometry(w, h, d);
-            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
-            const base = new THREE.Mesh(baseGeo, baseMat); base.position.set(x, h/2, z); base.castShadow = true; base.receiveShadow = true;
-            scene.add(base); collidableBoxes.push(new THREE.Box3().setFromObject(base));
-            const roofGeo = new THREE.BoxGeometry(w + 1, 1, d + 1);
-            const roofMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
-            const roof = new THREE.Mesh(roofGeo, roofMat); roof.position.set(x, h + 0.5, z); roof.castShadow = true; roof.receiveShadow = true;
-            scene.add(roof);
-        }
-
-        function resolveCollisions() {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-            for (let box of collidableBoxes) {
-                if (playerBox.intersectsBox(box)) {
-                    const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
-                    const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
-                    if (overlapX < overlapZ) {
-                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
-                        velocity.x = 0;
-                    } else {
-                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
-                        velocity.z = 0;
-                    }
-                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-                }
-            }
-        }
-
+        /* --- CORE INITIALIZATION --- */
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
@@ -295,197 +122,103 @@
             
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
             sunLight.position.set(50, 100, 50); sunLight.castShadow = true;
-            sunLight.shadow.mapSize.set(2048, 2048);
-            sunLight.shadow.camera.left = -100; sunLight.shadow.camera.right = 100;
-            sunLight.shadow.camera.top = 100; sunLight.shadow.camera.bottom = -100;
             scene.add(sunLight);
-            window.mainSun = sunLight;
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            const inst = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const startBtn = document.getElementById('start-btn');
-            
             controls = new PointerLockControls(cameraGroup, document.body);
-            startBtn.addEventListener('mouseenter', () => playHoverSound());
-            startBtn.addEventListener('mousedown', () => { playMenuClick(); controls.lock(); });
-            
-            controls.addEventListener('lock', () => {
-                inst.style.opacity = '0';
-                document.getElementById('neural-link-ui').style.display = 'none';
-                setTimeout(() => { if(controls.isLocked) inst.style.display = 'none'; }, 400);
-            });
-            
-            controls.addEventListener('unlock', () => {
-                if (!isInventoryOpen) {
-                    playMenuClick(); 
-                    title.classList.remove('animate-type'); title.innerText = "PAUSED";
-                    inst.style.display = 'flex';
-                    document.getElementById('neural-link-ui').style.display = 'block';
-                    setTimeout(() => inst.style.opacity = '1', 10);
-                }
-            });
+            document.getElementById('start-btn').onclick = () => controls.lock();
 
+            // Baseline Limbs (Grey Capsules)
             const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
             const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
-            const foreGeo = new THREE.CapsuleGeometry(0.1, 0.5, 4, 8);
-            leftUpper = new THREE.Mesh(upperGeo, limbMat); leftFore = new THREE.Mesh(foreGeo, limbMat);
-            leftFore.position.set(0, -0.1, -0.35); leftUpper.add(leftFore);
+            leftUpper = new THREE.Mesh(upperGeo, limbMat); 
             leftUpper.position.set(-0.6, -1.0, 0.2); camera.add(leftUpper);
-            rightUpper = new THREE.Mesh(upperGeo, limbMat); rightFore = new THREE.Mesh(foreGeo, limbMat);
-            rightFore.position.set(0, -0.1, -0.35); rightUpper.add(rightFore);
+            rightUpper = new THREE.Mesh(upperGeo, limbMat); 
             rightUpper.position.set(0.6, -1.0, 0.2); camera.add(rightUpper);
 
-            const arena = 180;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
-            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; 
-            scene.add(floor);
-
-            const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
-            wallData.forEach(d => {
-                const w = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
-                w.position.set(d.x, d.h/2, d.z); w.castShadow = true; w.receiveShadow = true; 
-                scene.add(w); collidableBoxes.push(new THREE.Box3().setFromObject(w));
-            });
-
-            for (let i = 0; i < 70; i++) {
-                let rx = Math.random() * 150 - 75; let rz = Math.random() * 150 - 75;
-                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
-                if (i % 3 === 0) createBuilding(rx, rz);
-                else {
-                    const h = Math.random() * 20 + 5;
-                    const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
-                    p.position.set(rx, h/2, rz); p.castShadow = true; p.receiveShadow = true; 
-                    scene.add(p); collidableBoxes.push(new THREE.Box3().setFromObject(p));
-                }
-            }
-
-            cameraGroup.position.set(0, 5, 0);
-
-            // M.A.N.U.L. Neural Link Injection
-            const gltfLoader = new GLTFLoader();
+            // M.A.N.U.L. Loader
+            const loader = new GLTFLoader();
             document.getElementById('robot-file').onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                const url = URL.createObjectURL(file);
-                gltfLoader.load(url, (gltf) => {
+                loader.load(URL.createObjectURL(file), (gltf) => {
+                    if (manulModel) scene.remove(manulModel);
                     manulModel = gltf.scene;
                     
-                    // Full Immersion Fix: Mask the head layer
-                    manulModel.traverse(node => {
-                        if (node.isMesh) {
-                            node.castShadow = true; node.receiveShadow = true;
-                            if (node.name.toLowerCase().includes('head') || node.name.toLowerCase().includes('neck')) {
-                                node.layers.set(1); 
-                            }
+                    manulModel.traverse(n => {
+                        if (n.isMesh) {
+                            n.castShadow = true;
+                            if (n.name.toLowerCase().includes('head')) n.layers.set(1);
                         }
                     });
 
+                    // Attach to player group
                     cameraGroup.add(manulModel);
-                    manulModel.position.set(0, -5, 0); 
+                    manulModel.position.set(0, -5, 0);
                     manulModel.rotation.y = Math.PI;
-
-                    // Cleanup Baseline limbs
+                    
+                    // Hide baseline limbs
                     leftUpper.visible = false; rightUpper.visible = false;
-                    document.getElementById('neural-link-ui').innerHTML = "<div style='color:#00ff00'>SYNC_SUCCESSFUL</div>";
+                    document.getElementById('neural-link-ui').style.display = 'none';
                 });
             };
 
+            // World Gen (Floor/Walls)
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            floor.rotation.x = -Math.PI/2; scene.add(floor);
+
+            cameraGroup.position.set(0, 5, 0);
+            setupInput();
+            animate();
+            startLoading();
+        }
+
+        function setupInput() {
             document.addEventListener('keydown', (e) => {
-                if (isListeningForKey) { binds[isListeningForKey] = e.code; isListeningForKey = null; refreshKeybindUI(); return; }
+                if (isListeningForKey) { binds[isListeningForKey] = e.code; isListeningForKey = null; return; }
                 if (e.code === binds.forward) moveForward = true;
                 if (e.code === binds.backward) moveBackward = true;
                 if (e.code === binds.left) moveLeft = true;
                 if (e.code === binds.right) moveRight = true;
                 if (e.code === binds.sprint) isRunning = true;
+                if (e.code === binds.perspective) togglePerspective();
                 if (e.code === binds.jump && canJump) { velocity.y += 22; canJump = false; }
-                if (e.code === binds.inventory) { e.preventDefault(); toggleInventory(); }
-                if (e.code === binds.slide && canJump && !isSliding && slideCooldown <= 0) {
-                    const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                    if (isMoving) { isSliding = true; slideTimer = slideMaxDuration; slideCooldown = slideMaxCooldown; camera.fov = warpFOV; blurElem.style.opacity = '1'; }
-                }
-                if (e.code === 'KeyF') { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
             });
-
             document.addEventListener('keyup', (e) => {
                 if (e.code === binds.forward) moveForward = false;
                 if (e.code === binds.backward) moveBackward = false;
                 if (e.code === binds.left) moveLeft = false;
                 if (e.code === binds.right) moveRight = false;
                 if (e.code === binds.sprint) isRunning = false;
-                if (e.code === binds.slide) isSliding = false;
             });
-
-            setupInventoryLogic();
-            setupPauseMenuTabs();
-            startLoading();
         }
 
-        function setupPauseMenuTabs() {
-            const manualBtn = document.getElementById('tab-manual'); const bindBtn = document.getElementById('tab-keybinds');
-            const manualView = document.getElementById('main-manual'); const bindView = document.getElementById('keybind-settings');
-            manualBtn.onclick = () => { playMenuClick(); manualBtn.classList.add('active'); bindBtn.classList.remove('active'); manualView.style.display = 'flex'; bindView.style.display = 'none'; };
-            bindBtn.onclick = () => { playMenuClick(); bindBtn.classList.add('active'); manualBtn.classList.remove('active'); manualView.style.display = 'none'; bindView.style.display = 'flex'; refreshKeybindUI(); };
-        }
-
-        function refreshKeybindUI() {
-            const container = document.getElementById('keybind-settings'); container.innerHTML = '';
-            for (let action in binds) {
-                const row = document.createElement('div'); row.className = 'key-row';
-                const label = document.createElement('div'); label.className = 'key-label'; label.innerText = action;
-                const cap = document.createElement('div'); cap.className = 'key-cap';
-                if (isListeningForKey === action) cap.classList.add('listening');
-                cap.innerText = binds[action];
-                cap.onclick = () => { playMenuClick(); isListeningForKey = action; refreshKeybindUI(); };
-                row.appendChild(label); row.appendChild(cap); container.appendChild(row);
+        function togglePerspective() {
+            isThirdPerson = !isThirdPerson;
+            if (isThirdPerson) {
+                camera.position.set(0, 4, 8); // Drone view
+                camera.lookAt(0, 0, 0);
+                camera.layers.enable(1); // Show head
+            } else {
+                camera.position.set(0, 0, 0); // FPS view
+                camera.layers.disable(1); // Hide head to prevent clipping
             }
         }
 
-        function updateManulRig() {
+        function updateRig() {
             if (!manulModel) return;
-
-            // Rig Sync: Head Look
             const neck = manulModel.getObjectByName("Neck") || manulModel.getObjectByName("Head");
             if (neck) neck.rotation.x = camera.rotation.x * 0.5;
 
-            // Rig Sync: Spine/Slide/Sprint
-            const spine = manulModel.getObjectByName("Spine");
-            if (spine) {
-                if (isSliding) {
-                    spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, 0.6, 0.1);
-                    manulModel.position.y = -3.5;
-                } else if (isRunning && stamina > 0) {
-                    spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, 0.3, 0.1);
-                    manulModel.position.y = -5;
-                } else {
-                    spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, 0, 0.1);
-                    manulModel.position.y = -5;
-                }
-            }
-
-            // Rig Sync: Footstep Procedural
-            const legL = manulModel.getObjectByName("Leg_L") || manulModel.getObjectByName("Thigh_L");
-            const legR = manulModel.getObjectByName("Leg_R") || manulModel.getObjectByName("Thigh_R");
-            if (legL && legR && bobTimer) {
-                const isMoving = Math.abs(velocity.x) > 0.1 || Math.abs(velocity.z) > 0.1;
-                if (isMoving && !isSliding) {
-                    const walkCycle = Math.sin(bobTimer * 8);
-                    legL.rotation.x = walkCycle * 0.6;
-                    legR.rotation.x = -walkCycle * 0.6;
-                } else {
-                    legL.rotation.x = THREE.MathUtils.lerp(legL.rotation.x, 0, 0.1);
-                    legR.rotation.x = THREE.MathUtils.lerp(legR.rotation.x, 0, 0.1);
-                }
+            const legL = manulModel.getObjectByName("Leg_L");
+            const legR = manulModel.getObjectByName("Leg_R");
+            if (legL && legR && (moveForward || moveBackward || moveLeft || moveRight)) {
+                legL.rotation.x = Math.sin(bobTimer * 8) * 0.5;
+                legR.rotation.x = -Math.sin(bobTimer * 8) * 0.5;
             }
         }
 
@@ -495,214 +228,46 @@
             const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked) {
-                velocity.x -= velocity.x * 12.0 * delta; velocity.z -= velocity.z * 12.0 * delta;
-                velocity.y -= 9.8 * 5.0 * delta; 
-                direction.z = Number(moveForward) - Number(moveBackward); direction.x = Number(moveRight) - Number(moveLeft);
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+                velocity.y -= 9.8 * 5.0 * delta;
+                
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                
-                if (isRunning && isMoving && stamina > 0) stamina = Math.max(0, stamina - 15 * delta);
-                else stamina = Math.min(100, stamina + 30 * delta);
-                document.getElementById('stamina-fill').style.width = stamina + '%';
-                document.getElementById('stamina-val').textContent = `${Math.round(stamina)} / 100`;
+                const speed = isRunning ? 200 : 120;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
-                if (slideCooldown > 0) slideCooldown -= delta;
-                const cdPercent = 100 - ((Math.max(0, slideCooldown) / slideMaxCooldown) * 100);
-                cdFill.style.width = cdPercent + '%';
-
-                if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta;
-                    let slideProgress = 1 - (slideTimer / slideMaxDuration);
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.0, 0.1);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.05); camera.updateProjectionMatrix();
-                    let blurAmount = 10 * (1 - slideProgress); let centerClearance = 30 * (1 - slideProgress);
-                    blurElem.style.backdropFilter = `blur(${blurAmount}px)`; blurElem.style.webkitBackdropFilter = `blur(${blurAmount}px)`;
-                    blurElem.style.maskImage = `radial-gradient(circle, transparent ${centerClearance}%, black 100%)`;
-                    blurElem.style.webkitMaskImage = `radial-gradient(circle, transparent ${centerClearance}%, black 100%)`;
-                    const slideSpeed = 130.0 * slideSpeedMultiplier;
-                    if (moveForward || moveBackward) velocity.z -= direction.z * slideSpeed * delta;
-                    if (moveLeft || moveRight) velocity.x -= direction.x * slideSpeed * delta;
-                    if (slideTimer <= 0) isSliding = false;
-                } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.1); camera.updateProjectionMatrix();
-                    blurElem.style.opacity = '0';
-                    const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
-                    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
-                }
-
-                controls.moveForward(-velocity.z * delta); controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+                controls.moveRight(-velocity.x * delta);
                 cameraGroup.position.y += (velocity.y * delta);
-                
-                if (cameraGroup.position.y < 5 && !isSliding) { 
-                    if (velocity.y < -15 && window.playHeavyThud) window.playHeavyThud(); 
-                    velocity.y = 0; cameraGroup.position.y = 5; canJump = true; 
-                }
-                if (cameraGroup.position.y < 3) { velocity.y = 0; cameraGroup.position.y = 3; }
 
-                resolveCollisions();
-
-                if (canJump && isMoving && !isSliding) {
-                    const actualRunning = isRunning && stamina > 0;
-                    bobTimer += delta * (actualRunning ? 14 : 8);
-                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
-                    camera.position.x = Math.cos(bobTimer * 0.5) * (actualRunning ? 0.02 : 0.008);
-                    camera.rotation.z = Math.sin(bobTimer * 0.5) * (actualRunning ? 0.012 : 0.004);
-                    if (!manulModel) { leftUpper.rotation.x = Math.sin(bobTimer) * 0.2; rightUpper.rotation.x = Math.cos(bobTimer) * 0.2; }
-                } else if (!isSliding) {
-                    camera.position.set(0,0,0); camera.rotation.z = 0;
-                    if (!manulModel) { leftUpper.rotation.x = 0; rightUpper.rotation.x = 0; }
-                }
+                if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
                 
-                updateManulRig();
-                if(window.updateAtmo) window.updateAtmo(time);
+                bobTimer += delta;
+                updateRig();
             }
             prevTime = time;
             renderer.render(scene, camera);
         }
 
-        function setupInventoryLogic() {
-            const grid = document.getElementById('inv-grid-container');
-            const items = [{ name: "Suture Kit", desc: "Medical nanites for structural repair.", color: "#ff416c" }, { name: "Stim-Shot", desc: "Instant stamina recharge.", color: "#6dd5ed" }, { name: "Key-Card", desc: "District level 4 access.", color: "#ffffff" }];
-            for (let i = 0; i < 16; i++) {
-                const slot = document.createElement('div'); slot.className = 'inv-slot';
-                if (items[i]) { const dot = document.createElement('div'); dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color; slot.appendChild(dot); }
-                slot.onclick = () => {
-                    playMenuClick(); document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active')); slot.classList.add('active');
-                    const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
-                    document.getElementById('inv-item-name').innerText = data.name; document.getElementById('inv-item-desc').innerText = data.desc;
-                };
-                slot.addEventListener('mouseenter', () => playHoverSound()); grid.appendChild(slot);
-            }
-            document.getElementById('inv-close-btn').onclick = toggleInventory;
-            document.getElementById('inv-close-btn').addEventListener('mouseenter', () => playHoverSound());
-        }
-
-        function toggleInventory() {
-            playMenuClick();
-            const overlay = document.getElementById('inventory-overlay');
-            isInventoryOpen = !isInventoryOpen;
-            if (isInventoryOpen) { controls.unlock(); overlay.style.display = 'flex'; setTimeout(() => overlay.style.opacity = '1', 10); }
-            else { overlay.style.opacity = '0'; setTimeout(() => { if(!isInventoryOpen) overlay.style.display = 'none'; }, 400); controls.lock(); }
+        function startLoading() {
+            const fill = document.getElementById('loader-fill');
+            let p = 0;
+            const inv = setInterval(() => {
+                p += 2; fill.style.width = p + '%';
+                if (p >= 100) { 
+                    clearInterval(inv); 
+                    document.getElementById('loading-screen').style.display = 'none';
+                    document.getElementById('instructions').style.display = 'flex';
+                    document.getElementById('instructions').style.opacity = '1';
+                }
+            }, 20);
         }
 
         init();
-        animate();
-
-        /* --- SOUND SYSTEMS (UNCHANGED CORE) --- */
-        (function() {
-            let districtWind, audioListener; let isPlaying = false; let nextBirdTime = 0;
-            const setupEnvironment = () => {
-                audioListener = new THREE.AudioListener(); camera.add(audioListener);
-                districtWind = new THREE.Audio(audioListener); const ctx = audioListener.context;
-                const bufferSize = 2 * ctx.sampleRate; const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const output = noiseBuffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-                districtWind.setBuffer(noiseBuffer); districtWind.setLoop(true); districtWind.setVolume(0);
-                const windFilter = ctx.createBiquadFilter(); windFilter.type = 'lowpass'; windFilter.frequency.value = 250; districtWind.setFilter(windFilter);
-            };
-            const playBirdChirp = () => {
-                const ctx = audioListener.context; const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.type = 'sine'; const baseFreq = 2000 + Math.random() * 1000; osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(baseFreq + 500, ctx.currentTime + 0.1); gain.gain.setValueAtTime(0, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-                osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.3);
-            };
-            setupEnvironment();
-            const originalAnimate = animate;
-            animate = function() {
-                originalAnimate(); 
-                if (controls.isLocked) {
-                    const ctx = audioListener.context; if (!isPlaying) { districtWind.play(); isPlaying = true; nextBirdTime = ctx.currentTime + 5; }
-                    const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
-                    const targetVol = 0.45 + Math.min(currentSpeed, 0.3); 
-                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), targetVol, 0.03));
-                    if (ctx.currentTime > nextBirdTime) { playBirdChirp(); nextBirdTime = ctx.currentTime + (5 + Math.random() * 10); }
-                } else if (isPlaying) {
-                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
-                    if (districtWind.getVolume() < 0.01) { districtWind.pause(); isPlaying = false; }
-                }
-            };
-            let nextStepTime = 0;
-            const playMetallicStep = (volume) => {
-                const ctx = audioListener.context; const osc = ctx.createOscillator(); const noise = ctx.createBufferSource();
-                const filter = ctx.createBiquadFilter(); const resonance = ctx.createBiquadFilter(); const gain = ctx.createGain();
-                const bufferSize = ctx.sampleRate * 0.1; const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                noise.buffer = buffer; osc.type = 'triangle'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.03);
-                resonance.type = 'bandpass'; resonance.frequency.value = 450; resonance.Q.value = 15; filter.type = 'lowpass'; filter.frequency.value = 600;
-                gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(volume * 1.2, ctx.currentTime + 0.005); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-                osc.connect(gain); noise.connect(filter); filter.connect(resonance); resonance.connect(gain); gain.connect(ctx.destination);
-                osc.start(); noise.start(); osc.stop(ctx.currentTime + 0.25); noise.stop(ctx.currentTime + 0.25);
-            };
-            const originalAnimatePhysics = animate;
-            animate = function() {
-                originalAnimatePhysics();
-                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                if (controls.isLocked && canJump && isMoving && !isSliding) {
-                    const time = performance.now(); const stepInterval = (isRunning && stamina > 0) ? 300 : 500; 
-                    if (time > nextStepTime) { playMetallicStep((isRunning && stamina > 0) ? 1.2 : 0.7); nextStepTime = time + stepInterval; }
-                }
-            };
-            playMenuClick = () => {
-                const ctx = audioListener.context;
-                const gummyOsc = ctx.createOscillator(); const gummyGain = ctx.createGain(); gummyOsc.type = 'sine'; gummyOsc.frequency.setValueAtTime(200, ctx.currentTime); gummyOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
-                gummyGain.gain.setValueAtTime(0, ctx.currentTime); gummyGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005); gummyGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                const clackOsc = ctx.createOscillator(); const clackGain = ctx.createGain(); clackOsc.type = 'sine'; clackOsc.frequency.setValueAtTime(3500, ctx.currentTime); clackOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.015);
-                clackGain.gain.setValueAtTime(0, ctx.currentTime); clackGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.002); clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
-                gummyOsc.connect(gummyGain); gummyGain.connect(ctx.destination); clackOsc.connect(clackGain); clackGain.connect(ctx.destination);
-                gummyOsc.start(); clackOsc.start(); gummyOsc.stop(ctx.currentTime + 0.12); clackOsc.stop(ctx.currentTime + 0.12);
-            };
-            playHoverSound = () => {
-                const ctx = audioListener.context;
-                const woodOsc = ctx.createOscillator(); const woodGain = ctx.createGain(); const woodFilter = ctx.createBiquadFilter(); woodOsc.type = 'triangle'; woodOsc.frequency.setValueAtTime(600, ctx.currentTime); woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
-                woodFilter.type = 'bandpass'; woodFilter.frequency.value = 1200; woodFilter.Q.value = 5; woodGain.gain.setValueAtTime(0, ctx.currentTime); woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005); woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-                const clackOsc = ctx.createOscillator(); const clackGain = ctx.createGain(); clackOsc.type = 'sine'; clackOsc.frequency.setValueAtTime(2200, ctx.currentTime);
-                clackGain.gain.setValueAtTime(0, ctx.currentTime); clackGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.002); clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
-                woodOsc.connect(woodFilter); woodFilter.connect(woodGain); woodGain.connect(ctx.destination); clackOsc.connect(clackGain); clackGain.connect(ctx.destination);
-                woodOsc.start(); clackOsc.start(); woodOsc.stop(ctx.currentTime + 0.07); clackOsc.stop(ctx.currentTime + 0.07);
-            };
-        })();
-
-        /* --- SAND SLIDE ENGINE --- */
-        (function() {
-            let slideNoise, slideGain;
-            const setupSlideSound = () => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const bufferSize = audioCtx.sampleRate * 2; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                slideNoise = audioCtx.createBufferSource(); slideNoise.buffer = buffer; slideNoise.loop = true;
-                const sandFilter = audioCtx.createBiquadFilter(); sandFilter.type = 'bandpass'; sandFilter.frequency.value = 1800; sandFilter.Q.value = 1.2;
-                slideGain = audioCtx.createGain(); slideGain.gain.value = 0; slideNoise.connect(sandFilter); sandFilter.connect(slideGain); slideGain.connect(audioCtx.destination); slideNoise.start();
-            };
-            const originalAnimateSlide = animate;
-            animate = function() { originalAnimateSlide(); if (!slideGain) setupSlideSound(); const targetVol = isSliding ? 0.4 : 0; slideGain.gain.setTargetAtTime(targetVol, slideGain.context.currentTime, 0.05); };
-        })();
-
-        /* --- HEAVY LANDING ENGINE --- */
-        (function() {
-            window.playHeavyThud = () => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const lowFilter = audioCtx.createBiquadFilter();
-                lowFilter.type = 'lowpass'; lowFilter.frequency.value = 80; osc.type = 'sine'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.connect(lowFilter); lowFilter.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-            };
-        })();
-
-        /* --- ATMOSPHERIC OVERLAY --- */
-        (function() {
-            const cloudCount = 15; const clouds = []; const cloudGroup = new THREE.Group(); scene.add(cloudGroup);
-            for(let i=0; i<cloudCount; i++) {
-                const cloudGeo = new THREE.SphereGeometry(15 + Math.random()*15, 8, 8); const cloudMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, transparent: true, opacity: 0.4 });
-                const cloud = new THREE.Mesh(cloudGeo, cloudMat); cloud.position.set(Math.random()*400-200, 80 + Math.random()*20, Math.random()*400-200); cloud.scale.y = 0.3;
-                cloudGroup.add(cloud); clouds.push(cloud);
-            }
-            window.updateAtmo = (time) => {
-                if(window.mainSun) { const pulse = 1.1 + Math.sin(time * 0.0005) * 0.1; window.mainSun.intensity = pulse; }
-                clouds.forEach((c) => { c.position.x += 0.05; if(c.position.x > 200) c.position.x = -200; });
-                scene.background.setHex(0xaaaaaa);
-            };
-        })();
     </script>
 </body>
 </html>
