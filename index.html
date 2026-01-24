@@ -207,8 +207,9 @@
         const playerSize = 0.7;
         let isInventoryOpen = false;
 
-        // Global sound function to be defined later
+        // Global sound function placeholders
         let playMenuClick = () => {};
+        let playHoverSound = () => {};
 
         /* --- SLIDE SYSTEM --- */
         let isSliding = false;
@@ -354,6 +355,9 @@
             const startBtn = document.getElementById('start-btn');
             
             controls = new PointerLockControls(cameraGroup, document.body);
+            
+            // Interaction Listeners
+            startBtn.addEventListener('mouseenter', () => playHoverSound());
             startBtn.addEventListener('mousedown', () => {
                 playMenuClick(); // Click Sound
                 controls.lock();
@@ -557,9 +561,12 @@
                     document.getElementById('inv-item-name').innerText = data.name;
                     document.getElementById('inv-item-desc').innerText = data.desc;
                 };
+                // Adding hover sound to inventory slots as well
+                slot.addEventListener('mouseenter', () => playHoverSound());
                 grid.appendChild(slot);
             }
             document.getElementById('inv-close-btn').onclick = toggleInventory;
+            document.getElementById('inv-close-btn').addEventListener('mouseenter', () => playHoverSound());
         }
 
         function toggleInventory() {
@@ -720,48 +727,84 @@
             };
         })();
 
-        /* --- SOFT GUMMY CLACKY BUTTON SYSTEM --- */
+        /* --- MENU AUDIO SYSTEMS (CLICK & HOVER) --- */
         (function() {
+            // SOFT GUMMY CLICK
             playMenuClick = () => {
                 const listener = camera.children.find(c => c instanceof THREE.AudioListener);
                 if (!listener) return;
                 const ctx = listener.context;
 
-                // 1. THE GUMMY BODY (Low Resonant Pop)
                 const gummyOsc = ctx.createOscillator();
                 const gummyGain = ctx.createGain();
-                
                 gummyOsc.type = 'sine';
                 gummyOsc.frequency.setValueAtTime(200, ctx.currentTime);
                 gummyOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
-                
                 gummyGain.gain.setValueAtTime(0, ctx.currentTime);
                 gummyGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005);
                 gummyGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
 
-                // 2. THE CLACKY CLICK (High Transient)
                 const clackOsc = ctx.createOscillator();
                 const clackGain = ctx.createGain();
-                
                 clackOsc.type = 'sine';
                 clackOsc.frequency.setValueAtTime(3500, ctx.currentTime);
                 clackOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.015);
-                
                 clackGain.gain.setValueAtTime(0, ctx.currentTime);
                 clackGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.002);
                 clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
 
-                // Connections
                 gummyOsc.connect(gummyGain);
                 gummyGain.connect(ctx.destination);
+                clackOsc.connect(clackGain);
+                clackGain.connect(ctx.destination);
+
+                gummyOsc.start(); clackOsc.start();
+                gummyOsc.stop(ctx.currentTime + 0.12); clackOsc.stop(ctx.currentTime + 0.12);
+            };
+
+            // WOODY CLACKY HOVER
+            playHoverSound = () => {
+                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
+                if (!listener || !listener.context) return;
+                const ctx = listener.context;
+
+                // 1. THE WOODY RESONANCE (Triangle + Bandpass)
+                const woodOsc = ctx.createOscillator();
+                const woodGain = ctx.createGain();
+                const woodFilter = ctx.createBiquadFilter();
+
+                woodOsc.type = 'triangle';
+                woodOsc.frequency.setValueAtTime(600, ctx.currentTime);
+                woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
+
+                woodFilter.type = 'bandpass';
+                woodFilter.frequency.value = 1200;
+                woodFilter.Q.value = 5;
+
+                woodGain.gain.setValueAtTime(0, ctx.currentTime);
+                woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005);
+                woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+
+                // 2. THE MECHANICAL CLACK (High Sine)
+                const clackOsc = ctx.createOscillator();
+                const clackGain = ctx.createGain();
+
+                clackOsc.type = 'sine';
+                clackOsc.frequency.setValueAtTime(2200, ctx.currentTime);
+                
+                clackGain.gain.setValueAtTime(0, ctx.currentTime);
+                clackGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.002);
+                clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
+
+                woodOsc.connect(woodFilter);
+                woodFilter.connect(woodGain);
+                woodGain.connect(ctx.destination);
                 
                 clackOsc.connect(clackGain);
                 clackGain.connect(ctx.destination);
 
-                gummyOsc.start();
-                clackOsc.start();
-                gummyOsc.stop(ctx.currentTime + 0.12);
-                clackOsc.stop(ctx.currentTime + 0.12);
+                woodOsc.start(); clackOsc.start();
+                woodOsc.stop(ctx.currentTime + 0.07); clackOsc.stop(ctx.currentTime + 0.07);
             };
         })();
     </script>
