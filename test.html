@@ -3,85 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot M.A.N.U.L. - Chromebook Edition</title>
+    <title>Geometric Range - V39.2 Subdued Foundation</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; color: white; font-family: monospace; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; mix-blend-mode: difference; }
-        #instructions { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border: 1px solid #ff4b2b; cursor: pointer; }
+        /* PRIME FOUNDATION STYLES */
+        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', monospace; background-color: #eeeeee; }
+        canvas { display: block; }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
+        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
+        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.05s linear; }
+        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
+        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; color: #111; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); z-index: 20; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 1.5px solid rgba(255, 255, 255, 0.4); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
+        .start-prompt { font-weight: bold; color: #ff4b2b; cursor: pointer; padding: 12px 40px; letter-spacing: 5px; text-transform: uppercase; border: 1px solid #ff4b2b; margin-top: 20px; }
     </style>
-</head>
-<body>
-    <div id="crosshair"></div>
-    <div id="instructions">
-        <h1>M.A.N.U.L. UNIT ONLINE</h1>
-        <p>CLICK TO START</p>
-        <p>(W,A,S,D to Move | V to Toggle Camera)</p>
-    </div>
-
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loader-title">LOADING</div>
+        <div class="loader-container"><div id="loader-fill"></div></div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="instructions">
+        <h1 style="letter-spacing:10px;">MEGA DISTRICT</h1>
+        <p>W,A,S,D — MOVE | V — TOGGLE VIEW</p>
+        <div class="start-prompt" id="start-btn">CLICK TO BEGIN</div>
+    </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        let scene, camera, renderer, controls, robot, mixer;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let camera, scene, renderer, controls, cameraGroup;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
+        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
+        let prevTime = performance.now();
+        let robotMesh, robotMixer, robotIdle, robotWalk;
         let isThirdPerson = false;
-        let velocity = new THREE.Vector3();
-        let direction = new THREE.Vector3();
+        let headNodes = [];
+        let bobPhase = 0;
 
-        // THIS URL WORKS ON CHROMEBOOKS WITHOUT A SERVER
-        const ROBOT_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb';
+        // I HAVE REPLACED THE PATH BELOW WITH A PUBLIC LINK
+        const MODEL_PATH = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb'; 
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x222222);
-            scene.fog = new THREE.Fog(0x222222, 0, 100);
-
+            scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
+            cameraGroup = new THREE.Group();
+            cameraGroup.add(camera);
+            scene.add(cameraGroup);
+
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
+            scene.add(hemiLight);
+
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
-            scene.add(light);
-
-            const grid = new THREE.GridHelper(200, 50, 0xff4b2b, 0x444444);
-            scene.add(grid);
-
-            controls = new PointerLockControls(camera, document.body);
-            document.getElementById('instructions').addEventListener('click', () => controls.lock());
+            controls = new PointerLockControls(cameraGroup, document.body);
+            document.getElementById('start-btn').addEventListener('click', () => controls.lock());
             controls.addEventListener('lock', () => document.getElementById('instructions').style.display = 'none');
-            controls.addEventListener('unlock', () => document.getElementById('instructions').style.display = 'block');
+            controls.addEventListener('unlock', () => document.getElementById('instructions').style.display = 'flex');
 
-            // LOAD THE ROBOT
+            // Ground
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // Load Robot
             const loader = new GLTFLoader();
-            loader.load(ROBOT_URL, (gltf) => {
-                robot = gltf.scene;
-                robot.scale.set(0.3, 0.3, 0.3);
-                scene.add(robot);
+            loader.load(MODEL_PATH, (gltf) => {
+                robotMesh = gltf.scene;
+                robotMesh.scale.set(0.3, 0.3, 0.3);
+                robotMesh.position.set(0, -1.8, -0.2);
+                cameraGroup.add(robotMesh);
 
-                mixer = new THREE.AnimationMixer(robot);
-                mixer.clipAction(gltf.animations[2]).play(); // Idle
+                robotMesh.traverse(child => {
+                    if (child.isMesh) {
+                        const name = child.name.toLowerCase();
+                        if (name.includes('head') || name.includes('helmet') || name.includes('eye')) headNodes.push(child);
+                    }
+                });
+
+                robotMixer = new THREE.AnimationMixer(robotMesh);
+                robotIdle = robotMixer.clipAction(gltf.animations.find(a => a.name.toLowerCase().includes('idle')) || gltf.animations[0]);
+                robotWalk = robotMixer.clipAction(gltf.animations.find(a => a.name.toLowerCase().includes('walk')) || gltf.animations[1]);
+                robotIdle.play();
+
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('instructions').style.display = 'flex';
             });
 
             window.addEventListener('keydown', (e) => {
-                if(e.code === 'KeyW') moveForward = true;
-                if(e.code === 'KeyS') moveBackward = true;
-                if(e.code === 'KeyA') moveLeft = true;
-                if(e.code === 'KeyD') moveRight = true;
-                if(e.code === 'KeyV') isThirdPerson = !isThirdPerson;
+                if (e.code === 'KeyW') moveForward = true;
+                if (e.code === 'KeyS') moveBackward = true;
+                if (e.code === 'KeyA') moveLeft = true;
+                if (e.code === 'KeyD') moveRight = true;
+                if (e.code === 'KeyV') {
+                    isThirdPerson = !isThirdPerson;
+                    if (isThirdPerson) {
+                        camera.position.set(0, 2, 5); // Move camera back
+                        robotMesh.position.set(0, -1.8, 0);
+                    } else {
+                        camera.position.set(0, 0, 0); // Reset to 1st person
+                        robotMesh.position.set(0, -1.8, -0.2);
+                    }
+                }
             });
 
             window.addEventListener('keyup', (e) => {
-                if(e.code === 'KeyW') moveForward = false;
-                if(e.code === 'KeyS') moveBackward = false;
-                if(e.code === 'KeyA') moveLeft = false;
-                if(e.code === 'KeyD') moveRight = false;
+                if (e.code === 'KeyW') moveForward = false;
+                if (e.code === 'KeyS') moveBackward = false;
+                if (e.code === 'KeyA') moveLeft = false;
+                if (e.code === 'KeyD') moveRight = false;
             });
 
             animate();
@@ -89,12 +127,12 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            const delta = 0.016;
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked) {
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
-
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
@@ -105,26 +143,32 @@
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
 
-                if (robot) {
-                    // Make robot follow camera position
-                    robot.position.copy(camera.position);
-                    robot.position.y -= 1.5; 
-                    
-                    if (isThirdPerson) {
-                        camera.position.z = robot.position.z + 5;
-                        camera.position.y = robot.position.y + 2;
-                        robot.visible = true;
+                if (robotMixer) {
+                    robotMixer.update(delta);
+                    const moving = moveForward || moveBackward || moveLeft || moveRight;
+                    if (moving) {
+                        if (!robotWalk.isRunning()) { robotIdle.stop(); robotWalk.play(); }
                     } else {
-                        robot.visible = true; // Set to false if you want pure 1st person
+                        if (!robotIdle.isRunning()) { robotWalk.stop(); robotIdle.play(); }
                     }
                 }
-            }
 
-            if (mixer) mixer.update(delta);
+                // Hide head in 1st person
+                headNodes.forEach(node => { node.visible = isThirdPerson; });
+            }
+            prevTime = time;
             renderer.render(scene, camera);
         }
 
         init();
+        
+        // Fake loader progress
+        let progress = 0;
+        const loadInt = setInterval(() => {
+            progress += 5;
+            document.getElementById('loader-fill').style.width = progress + '%';
+            if(progress >= 100) clearInterval(loadInt);
+        }, 50);
     </script>
 </body>
 </html>
