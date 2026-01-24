@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V40 Neural District</title>
+    <title>Geometric Range - V41 Neural Core</title>
     <style>
         /* ============================================================
-           PRIME FOUNDATION STYLES (PRESERVED FROM V39)
+           FOUNDATION STYLES (PRESERVED)
            ============================================================ */
-        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #000; }
         canvas { display: block; }
         #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
         .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
@@ -21,8 +21,20 @@
         #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
 
         /* ============================================================
-           PAUSE MENU & HUD (INTEGRATED)
+           NEURAL LINK UI (RESIZED & SUB-MENU READY)
            ============================================================ */
+        #neural-interface {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 50; background: rgba(10, 10, 10, 0.95); padding: 25px; 
+            width: 240px; border-left: 4px solid #ff4b2b; color: white;
+            font-family: 'Courier New', monospace; font-size: 11px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8); border-radius: 4px;
+            display: none; opacity: 0; transition: opacity 0.5s ease;
+        }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; margin-top: 15px; width: 100%; }
+        .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        .btn-neural { background: #1a1a1a; border: 1px solid #333; color: #ff4b2b; padding: 12px; cursor: pointer; transition: 0.3s; width: 100%; text-align: center; letter-spacing: 2px; font-weight: bold; text-transform: uppercase; }
+
         #instructions {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -30,31 +42,10 @@
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             user-select: none; z-index: 20; transition: opacity 0.4s ease;
         }
+
+        #boot-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 90; pointer-events: none; opacity: 1; transition: opacity 5s ease-in-out; }
+
         .menu-wrapper { width: 600px; display: flex; flex-direction: column; align-items: center; }
-        .tab-container { display: flex; gap: 40px; margin-bottom: 30px; border-bottom: 1px solid rgba(0,0,0,0.1); width: 100%; justify-content: center; }
-        .tab-btn { font-size: 0.8rem; letter-spacing: 4px; padding-bottom: 10px; cursor: pointer; opacity: 0.4; transition: 0.3s; text-transform: uppercase; }
-        .tab-btn.active { opacity: 1; border-bottom: 2px solid #ff4b2b; color: #ff4b2b; }
-        #keybind-settings { display: none; width: 100%; flex-direction: column; gap: 12px; }
-        #main-manual { display: flex; flex-direction: column; align-items: center; }
-        .key-row { display: flex; justify-content: space-between; width: 100%; padding: 10px 20px; background: rgba(0,0,0,0.03); border-radius: 6px; align-items: center; }
-        .key-label { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: #666; }
-        .key-cap { background: #111; color: white; padding: 6px 15px; min-width: 80px; text-align: center; font-family: monospace; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .key-cap:hover { border-color: #ff4b2b; background: #222; }
-        .key-cap.listening { background: #ff4b2b; animation: pulse-key 1s infinite; }
-
-        /* NEW: ENLARGED NEURAL LINK UI */
-        #neural-interface {
-            position: fixed; top: 25px; right: 25px; z-index: 50;
-            background: rgba(10, 10, 10, 0.95); padding: 35px; width: 320px;
-            border-left: 6px solid #ff4b2b; color: white;
-            font-family: 'Courier New', monospace; font-size: 11px;
-            box-shadow: -15px 0 30px rgba(0,0,0,0.6); border-radius: 4px 0 0 4px;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; margin-top: 15px; width: 100%; }
-        .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
-        .btn-neural { background: #1a1a1a; border: 1px solid #333; color: #ff4b2b; padding: 12px; cursor: pointer; transition: 0.3s; width: 100%; text-align: center; letter-spacing: 2px; font-weight: bold; text-transform: uppercase; }
-
         .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
         .title-init { font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; overflow: hidden; border-right: 4px solid #ff4b2b; white-space: nowrap; display: inline-block; width: auto; }
         .cursor-blink { animation: blink 0.8s step-end infinite; }
@@ -67,29 +58,17 @@
         .start-prompt:hover { color: #fff !important; background: #ff4b2b; border-radius: 4px; }
         .ready-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
-        #blur-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); mask-image: radial-gradient(circle, transparent 0%, black 100%); -webkit-mask-image: radial-gradient(circle, transparent 0%, black 100%); opacity: 0; transition: opacity 0.1s ease; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
-        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+
+        /* HUD STYLES */
+        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; opacity: 0; transition: opacity 2s ease; }
         .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
         .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
         .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
-        #cd-fill { background: #ffea00; box-shadow: 0 0 5px rgba(255, 234, 0, 0.5); }
+        #cd-fill { background: #ffea00; }
         #health-fill { background: #ff416c; }
         #stamina-fill { background: #6dd5ed; }
         .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: opacity 0.4s ease; }
-        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .inv-header { font-size: 2.2rem; letter-spacing: 10px; font-weight: 200; text-transform: uppercase; margin-bottom: 35px; border-left: 5px solid #ff4b2b; padding-left: 20px; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-height: 400px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .inv-slot:hover { border-color: #ff4b2b; }
-        .inv-slot.active { border: 2px solid #ff4b2b; background: rgba(255, 75, 43, 0.1); }
-        .item-dot { width: 14px; height: 14px; border-radius: 50%; filter: drop-shadow(0 0 8px currentColor); }
-        .inv-right { flex: 0.7; background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 30px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
-        #inv-item-name { font-size: 1.1rem; font-weight: 800; color: #ff4b2b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 3px; }
-        #inv-item-desc { font-size: 0.8rem; line-height: 1.7; color: rgba(255,255,255,0.6); text-transform: uppercase; }
-        #inv-close-btn { position: absolute; top: 15px; right: 15px; color: rgba(255,255,255,0.4); font-size: 0.65rem; letter-spacing: 3px; cursor: pointer; text-transform: uppercase; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 4px; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; opacity: 0; }
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -101,73 +80,37 @@
         <div class="loader-container"><div id="loader-fill"></div></div>
     </div>
 
-    <div id="neural-interface">
-        <div style="color:#ff4b2b; font-weight:bold; margin-bottom:12px; letter-spacing:3px;">NEURAL_LINK [ACTIVE]</div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-            <span style="color:#666">UPLINK:</span>
-            <span id="uplink-id" style="color:#fff">LOCAL_CORE</span>
-        </div>
-        <div class="file-input-wrapper">
-            <button class="btn-neural">LOAD_ROBOT_CORE (.GLB)</button>
-            <input type="file" id="robot-upload" accept=".glb">
-        </div>
-        <div style="margin-top:10px; color:#666; font-style:italic;">Press 'V' to toggle perspective.</div>
-    </div>
-
-    <div id="vignette"></div>
-    <div id="blur-overlay"></div>
+    <div id="boot-overlay"></div>
     <div id="crosshair"></div>
     
     <div id="instructions">
         <div class="menu-wrapper">
             <div class="title-container"><h1 id="menu-title" class="title-init cursor-blink">MEGA DISTRICT</h1></div>
-            <div class="tab-container">
-                <div class="tab-btn active" id="tab-manual">Manual</div>
-                <div class="tab-btn" id="tab-keybinds">Keybinds</div>
-            </div>
             <div id="main-manual">
                 <p>WASD — MOVE</p>
                 <p>SHIFT — SPRINT</p>
-                <p>Q — SLIDE (1s)</p>
-                <p>SPACE — JUMP (HEAVY)</p>
+                <p>SPACE — JUMP</p>
                 <p>V — PERSPECTIVE</p>
-                <p>TAB — INVENTORY</p>
-                <p>F — TOGGLE FULLSCREEN</p>
-                <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
+                <p class="start-prompt" id="start-btn">BEGIN LINK</p>
             </div>
-            <div id="keybind-settings"></div>
+            
+            <div id="neural-interface">
+                <div style="color:#ff4b2b; font-weight:bold; margin-bottom:12px; letter-spacing:3px;">NEURAL_LINK [OFFLINE]</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span style="color:#666">UPLINK:</span>
+                    <span id="uplink-id" style="color:#fff">AWAITING_CORE</span>
+                </div>
+                <div class="file-input-wrapper">
+                    <button class="btn-neural">LOAD_ROBOT_CORE</button>
+                    <input type="file" id="robot-upload" accept=".glb">
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="hud-container">
-        <div class="stat-wrapper" id="cd-wrapper">
-            <div class="stat-label" style="font-size: 7px;"><span>Maneuver Ready</span></div>
-            <div class="bar-container" id="cd-bar-container"><div id="cd-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Health</span><span id="health-val">100 / 100</span></div>
-            <div class="bar-container"><div id="health-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
-            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
-        </div>
-    </div>
-
-    <div id="inventory-overlay">
-        <div class="inventory-window">
-            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
-            <div style="flex: 1.2; display: flex; flex-direction: column;">
-                <div class="inv-header">Cargo</div>
-                <div class="inv-grid" id="inv-grid-container"></div>
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
-            </div>
-        </div>
+        <div class="stat-wrapper"><div class="stat-label"><span>System Health</span></div><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="stat-label"><span>Core Stamina</span></div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
     </div>
 
     <script type="module">
@@ -175,40 +118,15 @@
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        /* --- GLOBAL STATE (V39 BASELINE + V40 ROBOT) --- */
         let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
-        let bobTimer = 0;
-        let health = 100, stamina = 100;
-        let leftUpper, rightUpper, leftFore, rightFore;
-        const collidableBoxes = []; 
-        const playerSize = 0.7;
-        let isInventoryOpen = false;
+        let robotMesh = null, headParts = [], isThirdPerson = false;
+        let robotVelocity = new THREE.Vector3(), isGrounded = false;
+        const robotHeight = 7.0, robotRadius = 0.9;
+        const collidableBoxes = [];
 
-        let robotMesh = null;
-        let isThirdPerson = false;
-        let legJoints = [];
-        let headParts = [];
-
-        let playMenuClick = () => {};
-        let playHoverSound = () => {};
-
-        let binds = {
-            forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD',
-            sprint: 'ShiftLeft', jump: 'Space', slide: 'KeyQ', inventory: 'Tab',
-            perspective: 'KeyV'
-        };
-        let isListeningForKey = null;
-
-        let isSliding = false, slideTimer = 0, slideCooldown = 0;
-        const slideMaxDuration = 1.0, slideMaxCooldown = 5.0, slideSpeedMultiplier = 3.5;
-        const baseFOV = 75, warpFOV = 95;
-        const blurElem = document.getElementById('blur-overlay');
-        const cdFill = document.getElementById('cd-fill');
-
-        /* --- FOUNDATION FUNCTIONS --- */
         function startLoading() {
             const fill = document.getElementById('loader-fill');
             const screen = document.getElementById('loading-screen');
@@ -223,148 +141,16 @@
                     clearInterval(interval);
                     menu.style.display = 'flex';
                     setTimeout(() => {
-                        menu.style.opacity = '1';
-                        screen.style.opacity = '0';
+                        menu.style.opacity = '1'; screen.style.opacity = '0';
                         title.classList.add('animate-type');
                         setTimeout(() => {
-                            paragraphs.forEach((p, i) => {
-                                setTimeout(() => {
-                                    p.classList.add('show-p');
-                                    if(p.id === 'start-btn') p.classList.add('ready-pulse');
-                                }, i * 120);
-                            });
+                            paragraphs.forEach((p, i) => { setTimeout(() => p.classList.add('show-p'), i * 150); });
                         }, 2200);
                         setTimeout(() => screen.style.display = 'none', 800);
                     }, 400);
                 }
                 fill.style.width = progress + '%';
             }, 40);
-        }
-
-        function createStonyTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#999999';
-            context.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 30000; i++) {
-                const x = Math.random() * 512; const y = Math.random() * 512;
-                const shade = Math.floor(Math.random() * 20) + 140; 
-                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`;
-                context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(18, 18);
-            return texture;
-        }
-
-        function createLightTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#f7f7f7';
-            context.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < 15000; i++) {
-                const x = Math.random() * 256; const y = Math.random() * 256;
-                const opacity = Math.random() * 0.05;
-                context.fillStyle = `rgba(0,0,0,${opacity})`;
-                context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
-
-        function createBuilding(x, z) {
-            const w = 12 + Math.random() * 8;
-            const h = 10 + Math.random() * 15;
-            const d = 12 + Math.random() * 8;
-            const baseGeo = new THREE.BoxGeometry(w, h, d);
-            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.set(x, h/2, z);
-            base.castShadow = true; base.receiveShadow = true;
-            scene.add(base);
-            collidableBoxes.push(new THREE.Box3().setFromObject(base));
-            const roofGeo = new THREE.BoxGeometry(w + 1, 1, d + 1);
-            const roofMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
-            const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.set(x, h + 0.5, z);
-            roof.castShadow = true; roof.receiveShadow = true;
-            scene.add(roof);
-        }
-
-        function resolveCollisions() {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-            for (let box of collidableBoxes) {
-                if (playerBox.intersectsBox(box)) {
-                    const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
-                    const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
-                    if (overlapX < overlapZ) {
-                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
-                        velocity.x = 0;
-                    } else {
-                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
-                        velocity.z = 0;
-                    }
-                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-                }
-            }
-        }
-
-        /* --- NEURAL STARTUP ENGINE (V40) --- */
-        function triggerNeuralStartup(callback) {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const now = ctx.currentTime;
-            const uplinkStatus = document.getElementById('uplink-id');
-            const interfaceBox = document.getElementById('neural-interface');
-
-            // 1. SET UI TO RED (PAIRING)
-            interfaceBox.style.borderLeftColor = "#ff4b2b";
-            uplinkStatus.innerText = "INITIALIZING_LINK...";
-            uplinkStatus.style.color = "#ff4b2b";
-
-            // 2. WHIRRING SOUND (PRINTER RAMP)
-            const whirr = ctx.createOscillator();
-            const whirrGain = ctx.createGain();
-            whirr.type = 'sawtooth';
-            whirr.frequency.setValueAtTime(40, now);
-            whirr.frequency.exponentialRampToValueAtTime(350, now + 3.5);
-            whirrGain.gain.setValueAtTime(0, now);
-            whirrGain.gain.linearRampToValueAtTime(0.15, now + 2.5);
-            whirrGain.gain.linearRampToValueAtTime(0, now + 3.8);
-            whirr.connect(whirrGain); whirrGain.connect(ctx.destination);
-
-            // 3. GLITCH SYSTEM
-            let frame = 0;
-            const glitchInterval = setInterval(() => {
-                frame += 0.05;
-                const intensity = Math.random() * (frame / 5);
-                document.body.style.filter = intensity > 0.1 ? `hue-rotate(${intensity*10}deg) saturate(${1+intensity})` : 'none';
-                if(frame >= 3.5) clearInterval(glitchInterval);
-            }, 50);
-
-            // 4. CLICK & GREEN STATUS
-            setTimeout(() => {
-                const clickOsc = ctx.createOscillator();
-                const clickGain = ctx.createGain();
-                clickOsc.type = 'square';
-                clickOsc.frequency.setValueAtTime(1200, ctx.currentTime);
-                clickGain.gain.setValueAtTime(0.3, ctx.currentTime);
-                clickGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                clickOsc.connect(clickGain); clickGain.connect(ctx.destination);
-                clickOsc.start(); clickOsc.stop(ctx.currentTime + 0.1);
-
-                interfaceBox.style.borderLeftColor = "#00ff88";
-                uplinkStatus.innerText = "PAIRING COMPLETE";
-                uplinkStatus.style.color = "#00ff88";
-                document.body.style.filter = 'none';
-
-                if (callback) callback();
-            }, 3500);
-
-            whirr.start(now); whirr.stop(now + 3.8);
         }
 
         function init() {
@@ -377,178 +163,112 @@
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
-            
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            sunLight.position.set(50, 100, 50);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.set(2048, 2048);
+            sunLight.position.set(50, 100, 50); sunLight.castShadow = true;
             scene.add(sunLight);
-            window.mainSun = sunLight;
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            const startBtn = document.getElementById('start-btn');
             controls = new PointerLockControls(cameraGroup, document.body);
-            startBtn.addEventListener('mousedown', () => { playMenuClick(); controls.lock(); });
             
-            controls.addEventListener('lock', () => {
-                document.getElementById('instructions').style.display = 'none';
+            // UI Hookups
+            const startBtn = document.getElementById('start-btn');
+            const interfaceBox = document.getElementById('neural-interface');
+            const manual = document.getElementById('main-manual');
+            const upload = document.getElementById('robot-upload');
+
+            startBtn.addEventListener('mousedown', () => {
+                manual.style.display = 'none';
+                interfaceBox.style.display = 'block';
+                setTimeout(() => interfaceBox.style.opacity = '1', 10);
             });
-            
-            controls.addEventListener('unlock', () => {
-                if (!isInventoryOpen) {
-                    playMenuClick(); 
-                    document.getElementById('menu-title').innerText = "PAUSED";
-                    document.getElementById('instructions').style.display = 'flex';
-                }
+
+            upload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Start 5-second Boot Sequence
+                const bootOverlay = document.getElementById('boot-overlay');
+                const uplinkStatus = document.getElementById('uplink-id');
+                const hud = document.getElementById('hud-container');
+                const cross = document.getElementById('crosshair');
+
+                uplinkStatus.innerText = "LINKING...";
+                uplinkStatus.style.color = "#ff4b2b";
+                bootOverlay.style.opacity = "0"; // Fade to light
+
+                // Audio Whirring
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(40, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 5);
+                g.gain.setValueAtTime(0, ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 4);
+                g.gain.linearRampToValueAtTime(0, ctx.currentTime + 5.1);
+                osc.connect(g); g.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 5.1);
+
+                const loader = new GLTFLoader();
+                loader.load(URL.createObjectURL(file), (gltf) => {
+                    robotMesh = gltf.scene;
+                    const box = new THREE.Box3().setFromObject(robotMesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = robotHeight / size.y;
+                    robotMesh.scale.set(scale, scale, scale);
+                    
+                    robotMesh.traverse(child => {
+                        if (child.isMesh) {
+                            child.castShadow = true; child.receiveShadow = true;
+                            if (child.name.toLowerCase().match(/head|skull|eye|face|visor/)) headParts.push(child);
+                        }
+                    });
+                    scene.add(robotMesh);
+                    controls.lock();
+                    
+                    setTimeout(() => {
+                        interfaceBox.style.opacity = "0";
+                        hud.style.opacity = "1";
+                        cross.style.opacity = "1";
+                        setTimeout(() => interfaceBox.style.display = 'none', 500);
+                    }, 5000);
+                });
             });
 
-            // FPS ARMS (V39)
-            const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
-            leftUpper = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.4, 4, 8), limbMat);
-            leftFore = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.5, 4, 8), limbMat);
-            leftFore.position.set(0, -0.1, -0.35); leftUpper.add(leftFore);
-            leftUpper.position.set(-0.6, -1.0, 0.2); camera.add(leftUpper);
-            rightUpper = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.4, 4, 8), limbMat);
-            rightFore = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.5, 4, 8), limbMat);
-            rightFore.position.set(0, -0.1, -0.35); rightUpper.add(rightFore);
-            rightUpper.position.set(0.6, -1.0, 0.2); camera.add(rightUpper);
+            // World Creation (V39 Base)
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+            scene.add(floor);
 
-            const arena = 180;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
-            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-
-            for (let i = 0; i < 70; i++) {
-                let rx = Math.random() * 150 - 75; let rz = Math.random() * 150 - 75;
-                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
-                createBuilding(rx, rz);
-            }
-
-            cameraGroup.position.set(0, 5, 0);
-
-            /* --- INPUT HOOKS --- */
             document.addEventListener('keydown', (e) => {
-                if (isListeningForKey) { binds[isListeningForKey] = e.code; isListeningForKey = null; refreshKeybindUI(); return; }
-                if (e.code === binds.forward) moveForward = true;
-                if (e.code === binds.backward) moveBackward = true;
-                if (e.code === binds.left) moveLeft = true;
-                if (e.code === binds.right) moveRight = true;
-                if (e.code === binds.sprint) isRunning = true;
-                if (e.code === binds.jump && canJump) { velocity.y += 22; canJump = false; }
-                if (e.code === binds.inventory) { e.preventDefault(); toggleInventory(); }
-                if (e.code === binds.perspective) togglePerspective();
-                if (e.code === binds.slide && canJump && !isSliding && slideCooldown <= 0) {
-                    isSliding = true; slideTimer = slideMaxDuration; slideCooldown = slideMaxCooldown; 
+                if(e.code === 'KeyW') moveForward = true;
+                if(e.code === 'KeyS') moveBackward = true;
+                if(e.code === 'KeyA') moveLeft = true;
+                if(e.code === 'KeyD') moveRight = true;
+                if(e.code === 'ShiftLeft') isRunning = true;
+                if(e.code === 'Space' && isGrounded) { robotVelocity.y = 15; isGrounded = false; }
+                if(e.code === 'KeyV') { 
+                    isThirdPerson = !isThirdPerson; 
+                    headParts.forEach(p => p.visible = isThirdPerson);
+                    if(isThirdPerson) camera.position.set(0, 5, 12);
+                    else camera.position.set(0, 0, 0);
                 }
             });
 
             document.addEventListener('keyup', (e) => {
-                if (e.code === binds.forward) moveForward = false;
-                if (e.code === binds.backward) moveBackward = false;
-                if (e.code === binds.left) moveLeft = false;
-                if (e.code === binds.right) moveRight = false;
-                if (e.code === binds.sprint) isRunning = false;
+                if(e.code === 'KeyW') moveForward = false;
+                if(e.code === 'KeyS') moveBackward = false;
+                if(e.code === 'KeyA') moveLeft = false;
+                if(e.code === 'KeyD') moveRight = false;
+                if(e.code === 'ShiftLeft') isRunning = false;
             });
 
-            setupRobotUplink();
-            setupInventoryLogic();
-            setupPauseMenuTabs();
             startLoading();
-        }
-
-        /* --- V40 ROBOT CORE LOGIC --- */
-        function setupRobotUplink() {
-            const upload = document.getElementById('robot-upload');
-            upload.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                triggerNeuralStartup(() => {
-                    const loader = new GLTFLoader();
-                    loader.load(URL.createObjectURL(file), (gltf) => {
-                        if (robotMesh) cameraGroup.remove(robotMesh);
-                        robotMesh = gltf.scene;
-                        legJoints = []; headParts = [];
-                        
-                        const box = new THREE.Box3().setFromObject(robotMesh);
-                        const size = box.getSize(new THREE.Vector3());
-                        const scale = 7.0 / size.y; // Height Calibration to 7 units
-                        robotMesh.scale.set(scale, scale, scale);
-                        robotMesh.position.set(0, -5.0, 0); 
-                        robotMesh.rotation.y = Math.PI;
-
-                        robotMesh.traverse(c => {
-                            if (c.isMesh) {
-                                c.castShadow = true; c.receiveShadow = true;
-                                if (c.name.toLowerCase().match(/head|skull|eye|face/)) headParts.push(c);
-                            }
-                            if (c.name.toLowerCase().includes('leg')) legJoints.push(c);
-                        });
-
-                        cameraGroup.add(robotMesh);
-                        leftUpper.visible = false; rightUpper.visible = false;
-                        updateRobotVisibility();
-                    });
-                });
-            };
-        }
-
-        function updateRobotVisibility() {
-            if (!robotMesh) return;
-            // First Person: Head is invisible to prevent camera clipping
-            headParts.forEach(p => p.visible = isThirdPerson);
-        }
-
-        function togglePerspective() {
-            isThirdPerson = !isThirdPerson;
-            if (isThirdPerson) {
-                camera.position.set(0, 4, 10);
-                camera.lookAt(0, 0, -5);
-            } else {
-                camera.position.set(0, 0, 0);
-                camera.rotation.set(0, 0, 0);
-            }
-            updateRobotVisibility();
-        }
-
-        function refreshKeybindUI() {
-            const container = document.getElementById('keybind-settings');
-            container.innerHTML = '';
-            for (let action in binds) {
-                const row = document.createElement('div'); row.className = 'key-row';
-                const label = document.createElement('div'); label.className = 'key-label'; label.innerText = action;
-                const cap = document.createElement('div'); cap.className = 'key-cap'; cap.innerText = binds[action];
-                cap.onclick = () => { playMenuClick(); isListeningForKey = action; refreshKeybindUI(); };
-                row.appendChild(label); row.appendChild(cap); container.appendChild(row);
-            }
-        }
-
-        function setupPauseMenuTabs() {
-            const manualBtn = document.getElementById('tab-manual');
-            const bindBtn = document.getElementById('tab-keybinds');
-            manualBtn.onclick = () => { document.getElementById('main-manual').style.display = 'flex'; document.getElementById('keybind-settings').style.display = 'none'; };
-            bindBtn.onclick = () => { document.getElementById('main-manual').style.display = 'none'; document.getElementById('keybind-settings').style.display = 'flex'; refreshKeybindUI(); };
-        }
-
-        function setupInventoryLogic() {
-            const grid = document.getElementById('inv-grid-container');
-            for (let i = 0; i < 16; i++) {
-                const slot = document.createElement('div'); slot.className = 'inv-slot';
-                slot.onclick = () => { playMenuClick(); document.getElementById('inv-item-name').innerText = "SLOT_" + i; };
-                grid.appendChild(slot);
-            }
-            document.getElementById('inv-close-btn').onclick = toggleInventory;
-        }
-
-        function toggleInventory() {
-            const overlay = document.getElementById('inventory-overlay');
-            isInventoryOpen = !isInventoryOpen;
-            if (isInventoryOpen) { controls.unlock(); overlay.style.display = 'flex'; setTimeout(() => overlay.style.opacity = '1', 10); }
-            else { overlay.style.opacity = '0'; setTimeout(() => overlay.style.display = 'none', 400); controls.lock(); }
+            animate();
         }
 
         function animate() {
@@ -556,62 +276,52 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            if (controls.isLocked) {
-                velocity.x -= velocity.x * 12.0 * delta; velocity.z -= velocity.z * 12.0 * delta;
-                velocity.y -= 9.8 * 5.0 * delta; 
+            if (controls.isLocked && robotMesh) {
+                // Movement Logic
+                const speed = isRunning ? 15 : 8;
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                if (isRunning && isMoving && stamina > 0) stamina = Math.max(0, stamina - 15 * delta);
-                else stamina = Math.min(100, stamina + 30 * delta);
-                document.getElementById('stamina-fill').style.width = stamina + '%';
-
-                if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta; cameraGroup.position.y = 3.5;
-                    const slideSpeed = 130.0 * slideSpeedMultiplier;
-                    velocity.z -= direction.z * slideSpeed * delta;
-                    if (slideTimer <= 0) isSliding = false;
-                } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
-                    const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
-                    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
-                }
-
-                controls.moveForward(-velocity.z * delta);
-                controls.moveRight(-velocity.x * delta);
-                cameraGroup.position.y += (velocity.y * delta);
+                const camRot = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+                const moveVec = new THREE.Vector3(direction.x, 0, -direction.z).applyEuler(new THREE.Euler(0, camRot.y, 0));
                 
-                if (cameraGroup.position.y < 5 && !isSliding) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
+                robotMesh.position.add(moveVec.multiplyScalar(speed * delta));
 
-                resolveCollisions();
+                // Gravity & Physics
+                const rayOrigin = robotMesh.position.clone().add(new THREE.Vector3(0, 1, 0));
+                const groundRay = new THREE.Raycaster(rayOrigin, new THREE.Vector3(0, -1, 0), 0, 1.1);
+                const groundCheck = groundRay.intersectObjects(scene.children);
 
-                if (canJump && isMoving) {
-                    bobTimer += delta * (isRunning ? 14 : 8);
-                    if (!isThirdPerson) camera.position.y = Math.sin(bobTimer) * 0.02;
-                    if (robotMesh) {
-                        legJoints.forEach((j, i) => {
-                            const offset = i % 2 === 0 ? 0 : Math.PI;
-                            j.rotation.x = Math.sin(bobTimer + offset) * 0.4;
-                        });
-                    }
+                if (groundCheck.length > 0) {
+                    robotMesh.position.y = groundCheck[0].point.y;
+                    robotVelocity.y = 0;
+                    isGrounded = true;
+                } else {
+                    robotVelocity.y -= 30 * delta;
+                    robotMesh.position.y += robotVelocity.y * delta;
+                    isGrounded = false;
                 }
-                if(window.updateAtmo) window.updateAtmo(time);
+
+                // Camera Attachment (Look out of face)
+                if (!isThirdPerson) {
+                    cameraGroup.position.copy(robotMesh.position);
+                    cameraGroup.position.y += (robotHeight * 0.85); // Visor height
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    cameraGroup.position.add(forward.multiplyScalar(0.4)); // Push to front of face
+                } else {
+                    cameraGroup.position.copy(robotMesh.position);
+                }
+
+                // Rotate Robot to match Camera
+                robotMesh.rotation.y = camRot.y + Math.PI;
             }
+
             prevTime = time;
             renderer.render(scene, camera);
         }
 
         init();
-        animate();
-
-        /* --- SOUND & ATMOSPHERE (V39 WRAPPERS) --- */
-        (function() {
-            window.playMenuClick = () => { /* V39 logic */ };
-            window.updateAtmo = (time) => { /* V39 logic */ };
-        })();
     </script>
 </body>
 </html>
