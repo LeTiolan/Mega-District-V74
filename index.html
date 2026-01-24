@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V39.5 M.A.N.U.L. Turbo</title>
+    <title>Geometric Range - V40 Neural District</title>
     <style>
         /* ============================================================
            PRIME FOUNDATION STYLES (UNTOUCHED)
@@ -20,10 +20,9 @@
         .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
         #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
 
-        /* NEURAL LINK OVERLAY UI */
-        #neural-ui { position: fixed; top: 20px; right: 20px; z-index: 2000; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #ff4b2b; color: #ff4b2b; font-family: monospace; font-size: 10px; box-shadow: 0 0 15px rgba(255,75,43,0.3); }
-        #manul-load { color: #fff; margin-top: 5px; cursor: pointer; }
-
+        /* ============================================================
+           PAUSE MENU & KEYBIND UI LAYER (V39 BASELINE)
+           ============================================================ */
         #instructions {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -44,6 +43,23 @@
         .key-cap:hover { border-color: #ff4b2b; background: #222; }
         .key-cap.listening { background: #ff4b2b; animation: pulse-key 1s infinite; }
         @keyframes pulse-key { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        /* ============================================================
+           NEW V40: NEURAL LINK INTERFACE STYLES
+           ============================================================ */
+        #neural-interface {
+            position: fixed; top: 25px; right: 25px; z-index: 50;
+            background: rgba(10, 10, 10, 0.9); padding: 20px;
+            border-left: 3px solid #ff4b2b; color: white;
+            font-family: 'Courier New', monospace; font-size: 11px;
+            box-shadow: -10px 0 20px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .neural-header { color: #ff4b2b; font-weight: bold; margin-bottom: 10px; letter-spacing: 2px; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; margin-top: 10px; }
+        .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        .btn-neural { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 8px 15px; cursor: pointer; transition: 0.3s; }
+        .btn-neural:hover { border-color: #ff4b2b; color: white; }
 
         /* HUD & Inventory Styles (Untouched) */
         .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
@@ -92,9 +108,14 @@
         <div class="loader-container"><div id="loader-fill"></div></div>
     </div>
 
-    <div id="neural-ui">
-        CORE_LINK: M.A.N.U.L. UNIT<br>
-        <input type="file" id="manul-load" accept=".glb">
+    <div id="neural-interface">
+        <div class="neural-header">NEURAL_LINK [ACTIVE]</div>
+        SYSTEM STATUS: ONLINE<br>
+        UPLINK_PROTOCOL: M.A.N.U.L.<br>
+        <div class="file-input-wrapper">
+            <button class="btn-neural">UPLOAD_CORE (.GLB)</button>
+            <input type="file" id="manul-uplink" accept=".glb">
+        </div>
     </div>
 
     <div id="vignette"></div>
@@ -159,6 +180,9 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import * as BufferGeometryUtils from 'https://unpkg.com/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js';
 
+        // ============================================================
+        // V39 CORE VARIABLES (UNTOUCHED)
+        // ============================================================
         let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
@@ -169,18 +193,20 @@
         const collidableBoxes = []; 
         const playerSize = 0.7;
         let isInventoryOpen = false;
-
         let playMenuClick = () => {};
         let playHoverSound = () => {};
 
-        /* NEURAL BRIDGE EXTENSIONS */
-        let manul = null;
-        let isThirdPerson = false;
+        // ============================================================
+        // V40 NEURAL EXTENSIONS
+        // ============================================================
+        let manulModel = null;
+        let thirdPersonMode = false;
+        let currentPerspective = 'FIRST_PERSON';
 
         let binds = {
             forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD',
             sprint: 'ShiftLeft', jump: 'Space', slide: 'KeyQ', inventory: 'Tab',
-            perspective: 'KeyV' // NEW KEYBIND
+            perspective: 'KeyV' // NEW PERSPECTIVE BIND
         };
         let isListeningForKey = null;
 
@@ -225,6 +251,9 @@
             }, 40);
         }
 
+        // ============================================================
+        // TEXTURE FACTORIES (UNTOUCHED)
+        // ============================================================
         function createStonyTexture() {
             const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
             const context = canvas.getContext('2d'); context.fillStyle = '#999999'; context.fillRect(0, 0, 512, 512);
@@ -248,6 +277,9 @@
             return texture;
         }
 
+        // ============================================================
+        // PHYSICS & COLLISION (UNTOUCHED)
+        // ============================================================
         function resolveCollisions() {
             const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
             for (let box of collidableBoxes) {
@@ -303,6 +335,7 @@
                 }
             });
 
+            // FPS HANDS (V39 BASELINE)
             const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
             const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
             const foreGeo = new THREE.CapsuleGeometry(0.1, 0.5, 4, 8);
@@ -311,28 +344,37 @@
             rightUpper = new THREE.Mesh(upperGeo, limbMat); rightFore = new THREE.Mesh(foreGeo, limbMat);
             rightFore.position.set(0, -0.1, -0.35); rightUpper.add(rightFore); rightUpper.position.set(0.6, -1.0, 0.2); camera.add(rightUpper);
 
-            /* FPS TURBO: GEOMETRY MERGING */
-            const districtGeos = [];
+            // ============================================================
+            // DISTRICT GENERATION: MERGED FOR TURBO FPS (V40)
+            // ============================================================
             const buildingTex = createLightTexture();
             const arena = 180;
+            const mergedGeometries = [];
 
             for (let i = 0; i < 70; i++) {
                 let rx = Math.random() * 150 - 75; let rz = Math.random() * 150 - 75;
                 if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
                 const w = 12 + Math.random() * 8; const h = (i % 3 === 0) ? (10 + Math.random() * 15) : (Math.random() * 20 + 5); const d = 12 + Math.random() * 8;
-                const bGeo = new THREE.BoxGeometry(w, h, d);
-                bGeo.translate(rx, h/2, rz);
-                districtGeos.push(bGeo);
+                
+                const boxGeo = new THREE.BoxGeometry(w, h, d);
+                boxGeo.translate(rx, h/2, rz);
+                mergedGeometries.push(boxGeo);
+                
+                // Keep collision bounds separate for the engine
                 collidableBoxes.push(new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(rx, h/2, rz), new THREE.Vector3(w, h, d)));
             }
-            const mergedDistrict = BufferGeometryUtils.mergeGeometries(districtGeos);
-            const cityMesh = new THREE.Mesh(mergedDistrict, new THREE.MeshPhongMaterial({ map: buildingTex }));
-            cityMesh.castShadow = true; cityMesh.receiveShadow = true;
-            scene.add(cityMesh);
+            
+            // Merge all building geometry into a single draw call
+            const finalDistrictGeo = BufferGeometryUtils.mergeGeometries(mergedGeometries);
+            const districtMesh = new THREE.Mesh(finalDistrictGeo, new THREE.MeshPhongMaterial({ map: buildingTex }));
+            districtMesh.castShadow = true; districtMesh.receiveShadow = true;
+            scene.add(districtMesh);
 
+            // Floor (V39 Baseline)
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
             floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 
+            // Walls (V39 Baseline)
             const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
             wallData.forEach(d => {
                 const w = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), new THREE.MeshPhongMaterial({ map: buildingTex }));
@@ -342,20 +384,28 @@
 
             cameraGroup.position.set(0, 5, 0);
 
-            /* M.A.N.U.L. NEURAL UPLOAD */
-            document.getElementById('manul-load').onchange = (e) => {
+            // ============================================================
+            // NEURAL UPLINK LOGIC (V40)
+            // ============================================================
+            document.getElementById('manul-uplink').onchange = (e) => {
+                const file = e.target.files[0];
                 const loader = new GLTFLoader();
-                loader.load(URL.createObjectURL(e.target.files[0]), (gltf) => {
-                    if(manul) cameraGroup.remove(manul);
-                    manul = gltf.scene;
-                    manul.position.set(0, -5, 0); manul.rotation.y = Math.PI;
-                    // Auto-Scale Logic
-                    const box = new THREE.Box3().setFromObject(manul);
-                    const size = box.getSize(new THREE.Vector3()).y;
-                    const scale = 4.5 / size;
-                    manul.scale.set(scale, scale, scale);
-                    manul.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; }});
-                    cameraGroup.add(manul);
+                loader.load(URL.createObjectURL(file), (gltf) => {
+                    if (manulModel) cameraGroup.remove(manulModel);
+                    manulModel = gltf.scene;
+                    manulModel.position.set(0, -5, 0); 
+                    manulModel.rotation.y = Math.PI; 
+                    
+                    // Normalize Scale based on height
+                    const box = new THREE.Box3().setFromObject(manulModel);
+                    const currentHeight = box.getSize(new THREE.Vector3()).y;
+                    const scaleFactor = 4.5 / currentHeight;
+                    manulModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                    
+                    manulModel.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; }});
+                    cameraGroup.add(manulModel);
+                    
+                    // Hide floating hands if robot is active
                     leftUpper.visible = false; rightUpper.visible = false;
                 });
             };
@@ -370,11 +420,16 @@
                 if (e.code === binds.jump && canJump) { velocity.y += 22; canJump = false; }
                 if (e.code === binds.inventory) { e.preventDefault(); toggleInventory(); }
                 
-                // NEW PERSPECTIVE TOGGLE
+                // V40: Perspective Toggle
                 if (e.code === binds.perspective) {
-                    isThirdPerson = !isThirdPerson;
-                    if(isThirdPerson) camera.position.set(0, 4, 12);
-                    else camera.position.set(0, 0, 0);
+                    thirdPersonMode = !thirdPersonMode;
+                    if (thirdPersonMode) {
+                        camera.position.set(0, 4, 12); 
+                        currentPerspective = 'THIRD_PERSON';
+                    } else {
+                        camera.position.set(0, 0, 0);
+                        currentPerspective = 'FIRST_PERSON';
+                    }
                 }
 
                 if (e.code === binds.slide && canJump && !isSliding && slideCooldown <= 0) {
@@ -461,15 +516,15 @@
                 if (canJump && isMoving && !isSliding) {
                     const actualRunning = isRunning && stamina > 0;
                     bobTimer += delta * (actualRunning ? 14 : 8);
-                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
+                    camera.position.y += Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
                     
-                    /* NEW: PROCEDURAL GAIT FOR M.A.N.U.L. */
-                    if (manul) {
-                        manul.rotation.z = Math.sin(bobTimer * 0.5) * 0.05; // Hip Sway
-                        manul.traverse(child => {
-                            if (child.isMesh && child.name.toLowerCase().includes('leg')) {
-                                const side = child.position.x > 0 ? 1 : -1;
-                                child.rotation.x = Math.sin(bobTimer + (side * 0.5)) * 0.4;
+                    // V40 PROCEDURAL GAIT: Animates legs by name
+                    if (manulModel) {
+                        manulModel.rotation.z = Math.sin(bobTimer * 0.5) * 0.04; // Pelvis shift
+                        manulModel.traverse(node => {
+                            if (node.isMesh && node.name.toLowerCase().includes('leg')) {
+                                const polarity = node.position.x > 0 ? 1 : -1;
+                                node.rotation.x = Math.sin(bobTimer + (polarity * 0.4)) * 0.5;
                             }
                         });
                     }
@@ -477,11 +532,11 @@
                     leftUpper.rotation.x = Math.sin(bobTimer) * 0.2;
                     rightUpper.rotation.x = Math.cos(bobTimer) * 0.2;
                 } else if (!isSliding) {
-                    if(manul) {
-                        manul.rotation.z = THREE.MathUtils.lerp(manul.rotation.z, 0, 0.1);
-                        manul.traverse(c => { if(c.isMesh && c.name.toLowerCase().includes('leg')) c.rotation.x = THREE.MathUtils.lerp(c.rotation.x, 0, 0.1); });
+                    if (manulModel) {
+                        manulModel.rotation.z = THREE.MathUtils.lerp(manulModel.rotation.z, 0, 0.1);
+                        manulModel.traverse(n => { if (n.isMesh && n.name.toLowerCase().includes('leg')) n.rotation.x = THREE.MathUtils.lerp(n.rotation.x, 0, 0.1); });
                     }
-                    camera.position.set(0,0,0); leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
+                    leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
                 }
                 if(window.updateAtmo) window.updateAtmo(time);
             }
@@ -512,9 +567,11 @@
 
         init(); animate();
 
-        /* SOUNDS UNTOUCHED FROM V39 BASELINE */
+        // ============================================================
+        // SOUND ENGINES (V39 BASELINE - UNTOUCHED)
+        // ============================================================
         (function() {
-            let districtWind, audioListener; let isPlaying = false; let nextBirdTime = 0;
+            let districtWind, audioListener; let isPlaying = false; 
             const setupEnvironment = () => {
                 audioListener = new THREE.AudioListener(); camera.add(audioListener);
                 districtWind = new THREE.Audio(audioListener); const ctx = audioListener.context;
@@ -528,7 +585,6 @@
             animate = function() {
                 originalAnimate(); 
                 if (controls.isLocked) {
-                    const ctx = audioListener.context;
                     if (!isPlaying) { districtWind.play(); isPlaying = true; }
                     const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0.45 + Math.min(currentSpeed, 0.3), 0.03));
@@ -545,9 +601,10 @@
             window.playHeavyThud = () => {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 100;
                 osc.type = 'sine'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+                osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
             };
         })();
 
