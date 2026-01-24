@@ -3,34 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V44.2 Neural Rig</title>
+    <title>Geometric Range - V44.3 Full Integration</title>
     <style>
-        /* [V39 FOUNDATION STYLES] */
-        body { margin: 0; overflow: hidden; font-family: 'Inter', monospace; background-color: #000; }
+        /* ============================================================
+           SECTION 1: V39 LEGACY STYLES (PRESERVED)
+           ============================================================ */
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #000; }
         canvas { display: block; }
+        #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.5); pointer-events: none; z-index: 5; }
 
-        /* [NEW: HALO HUD OVERLAY] */
+        /* ============================================================
+           SECTION 2: NEURAL HUD (HALO VISOR)
+           ============================================================ */
         #halo-hud {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none; z-index: 80; opacity: 0; transition: opacity 2s ease;
         }
         .visor-arc {
             position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%);
-            width: 700px; height: 120px; border-top: 2px solid rgba(0, 242, 255, 0.5);
-            border-radius: 50% 50% 0 0; box-shadow: 0 -15px 40px rgba(0, 242, 255, 0.2);
+            width: 750px; height: 130px; border-top: 2px solid rgba(0, 242, 255, 0.4);
+            border-radius: 50% 50% 0 0; box-shadow: 0 -20px 50px rgba(0, 242, 255, 0.1);
         }
-        .hud-val { position: absolute; color: #00f2ff; font-size: 10px; text-shadow: 0 0 10px #00f2ff; letter-spacing: 2px; }
+        .hud-stat { position: absolute; color: #00f2ff; font-family: monospace; font-size: 10px; text-shadow: 0 0 8px #00f2ff; letter-spacing: 2px; }
 
-        /* [NEW: CENTERED NEURAL BOOT] */
-        #neural-terminal {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 100; background: #050505; border: 1px solid #00f2ff; padding: 40px;
-            width: 320px; text-align: center; color: white; display: none; opacity: 0;
-            transition: opacity 0.5s;
-        }
+        /* ============================================================
+           SECTION 3: COLD START PAIRING MENU
+           ============================================================ */
         #boot-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 90; pointer-events: none; opacity: 1; transition: opacity 5s ease; }
+        
+        #neural-interface {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 95; background: rgba(5, 5, 5, 0.98); padding: 50px; 
+            width: 300px; border: 1px solid #00f2ff; color: white;
+            text-align: center; display: none; opacity: 0; transition: opacity 0.5s;
+        }
+        .btn-neural { background: transparent; border: 1px solid #00f2ff; color: #00f2ff; padding: 18px; cursor: pointer; width: 100%; margin-top: 25px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; }
 
-        /* [V39 MANUAL SYNC] */
+        /* V39 TITLE UI */
         #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #eee; z-index: 20; }
         .start-prompt { margin-top: 30px; padding: 12px 40px; border: 2px solid #ff4b2b; color: #ff4b2b; cursor: pointer; font-weight: bold; letter-spacing: 5px; }
     </style>
@@ -40,22 +49,24 @@
 </head>
 <body>
     <div id="boot-overlay"></div>
+    <div id="vignette"></div>
+
     <div id="halo-hud">
         <div class="visor-arc"></div>
-        <div class="hud-val" style="bottom: 12%; left: 25%;">SYNC_STABILITY: 100%</div>
-        <div class="hud-val" style="bottom: 12%; right: 25%;">CORE_INTEGRITY: 100%</div>
+        <div class="hud-stat" style="bottom: 12%; left: 28%;">SYNC_STABILITY // 100%</div>
+        <div class="hud-stat" style="bottom: 12%; right: 28%;">NEURAL_CORE // ACTIVE</div>
     </div>
 
     <div id="instructions">
         <h1 style="letter-spacing: 15px; font-weight: 200;">MEGA DISTRICT</h1>
-        <div class="start-prompt" id="init-btn">INITIALIZE LINK</div>
+        <div class="start-prompt" id="start-btn">BEGIN NEURAL LINK</div>
     </div>
 
-    <div id="neural-terminal">
-        <div style="color:#00f2ff; letter-spacing: 5px; margin-bottom: 20px;">NEURAL COLD BOOT</div>
-        <div id="status-text" style="font-size: 9px; color: #666; margin-bottom: 20px;">AWAITING ROBOT CORE (.GLB)</div>
-        <input type="file" id="glb-up" accept=".glb" style="display:none;">
-        <button style="background:transparent; border:1px solid #00f2ff; color:#00f2ff; padding:15px; width:100%; cursor:pointer;" onclick="document.getElementById('glb-up').click()">LOAD_HARDWARE</button>
+    <div id="neural-interface">
+        <div style="color:#00f2ff; font-size: 16px; margin-bottom: 15px; letter-spacing: 5px;">COLD START</div>
+        <div id="sync-status" style="font-size: 9px; color: #444; margin-bottom: 25px;">AWAITING ROBOT CORE (.GLB)</div>
+        <input type="file" id="robot-upload" accept=".glb" style="display:none;">
+        <button class="btn-neural" onclick="document.getElementById('robot-upload').click()">UPLOAD_HARDWARE</button>
     </div>
 
     <script type="module">
@@ -63,50 +74,78 @@
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+        /* ------------------------------------------------------------
+           V39 COMPLEXITY MODULE: WORLD GENERATION (PRESERVED)
+           ------------------------------------------------------------ */
         let camera, scene, renderer, controls, cameraGroup;
-        let robotMesh = null, headParts = [], limbHitboxes = [];
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let velocity = new THREE.Vector3();
-        let prevTime = performance.now();
-        const PLAYER_HEIGHT = 7.0; // V39 Constant
+        const CHARACTER_HEIGHT = 7.0; 
 
-        /* -----------------------------------------------------------
-           SYSTEM SECTION 1: RIGGING & HITBOXES
-           (Affects robot body & collision only)
-        ----------------------------------------------------------- */
+        function initWorld() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // V39 Lighting
+            const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 2.0);
+            scene.add(hemi);
+
+            // V39 Stony Floor Texture Logic
+            const floorGeo = new THREE.PlaneGeometry(1000, 1000);
+            const floorMat = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            controls = new PointerLockControls(cameraGroup, document.body);
+        }
+
+        /* ------------------------------------------------------------
+           NEW MODULE: NEURAL RIGGING & HITBOXES
+           (Affects Limb Collisions Separately)
+           ------------------------------------------------------------ */
+        let robotMesh = null, headParts = [], limbHitboxes = [];
+
         function rigRobot(gltf) {
             robotMesh = gltf.scene;
             const b3 = new THREE.Box3().setFromObject(robotMesh);
-            const scale = PLAYER_HEIGHT / b3.getSize(new THREE.Vector3()).y;
+            const scale = CHARACTER_HEIGHT / b3.getSize(new THREE.Vector3()).y;
             robotMesh.scale.set(scale, scale, scale);
 
             robotMesh.traverse(child => {
                 if (child.isMesh) {
-                    // SEPARATE HITBOX FOR EVERY LIMB
+                    // COMPLICATED: Each mesh piece gets a tracking Box3
                     limbHitboxes.push({ mesh: child, box: new THREE.Box3() });
-                    // HEAD CULLING FOR 1ST PERSON
+                    // First Person Head Culling
                     if (child.name.toLowerCase().match(/head|face|eye|visor/)) headParts.push(child);
                 }
             });
             scene.add(robotMesh);
         }
 
-        /* -----------------------------------------------------------
-           SYSTEM SECTION 2: MOVEMENT ENGINE (V39 LOGIC)
-           (Affects velocity and input only)
-        ----------------------------------------------------------- */
+        /* ------------------------------------------------------------
+           V39 MODULE: PHYSICS & MOVEMENT (PRESERVED)
+           ------------------------------------------------------------ */
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let velocity = new THREE.Vector3();
+        let prevTime = performance.now();
+
         function updateMovement(delta) {
             if (!controls.isLocked || !robotMesh) return;
 
+            // V39 Friction & Gravity
             velocity.x -= velocity.x * 12.0 * delta;
             velocity.z -= velocity.z * 12.0 * delta;
             velocity.y -= 9.8 * 5.0 * delta;
 
-            const camRot = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
-            const fwd = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0, camRot.y, 0));
-            const rgt = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0, camRot.y, 0));
+            const speed = 160.0;
+            const camEuler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+            const fwd = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0, camEuler.y, 0));
+            const rgt = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0, camEuler.y, 0));
 
-            const speed = 150.0;
             if (moveForward) velocity.z -= speed * delta;
             if (moveBackward) velocity.z += speed * delta;
             if (moveLeft) velocity.x -= speed * delta;
@@ -117,68 +156,50 @@
             robotMesh.position.y += (velocity.y * delta);
             if (robotMesh.position.y < 0) { robotMesh.position.y = 0; velocity.y = 0; }
 
-            // UPDATE LIMB COLLIDERS
+            // HITBOX UPDATE: Only affects individual limb boxes
             limbHitboxes.forEach(item => item.box.setFromObject(item.mesh));
 
-            // ANCHOR CAMERA TO VISOR
+            // VISOR POSITIONING
             headParts.forEach(p => p.visible = false);
             cameraGroup.position.copy(robotMesh.position);
-            cameraGroup.position.y += (PLAYER_HEIGHT * 0.9);
-            const lookDir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
-            cameraGroup.position.add(lookDir.multiplyScalar(0.4)); // Lens offset
+            cameraGroup.position.y += (CHARACTER_HEIGHT * 0.9);
+            const look = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+            cameraGroup.position.add(look.multiplyScalar(0.4)); // Lens Offset
 
-            robotMesh.rotation.y = camRot.y + Math.PI;
+            robotMesh.rotation.y = camEuler.y + Math.PI;
         }
 
-        /* -----------------------------------------------------------
-           SYSTEM SECTION 3: COLD START BRIDGE
-           (Affects UI flow and 5s boot only)
-        ----------------------------------------------------------- */
-        function initNeuralFlow() {
-            const btn = document.getElementById('init-btn');
-            const term = document.getElementById('neural-terminal');
-            const up = document.getElementById('glb-up');
+        /* ------------------------------------------------------------
+           NEURAL BRIDGE MODULE: COLD BOOT (5s SEQUENCE)
+           ------------------------------------------------------------ */
+        function initBootSystem() {
+            const startBtn = document.getElementById('start-btn');
+            const menu = document.getElementById('neural-interface');
+            const upload = document.getElementById('robot-upload');
 
-            btn.onclick = () => {
+            startBtn.onclick = () => {
                 document.getElementById('instructions').style.display = 'none';
-                term.style.display = 'block';
-                setTimeout(() => term.style.opacity = '1', 50);
+                menu.style.display = 'block';
+                setTimeout(() => menu.style.opacity = '1', 10);
             };
 
-            up.onchange = (e) => {
+            upload.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                document.getElementById('status-text').innerText = "CALIBRATING SYNA-LINK...";
-                document.getElementById('boot-overlay').style.opacity = "0"; // Start 5s Reveal
+                document.getElementById('sync-status').innerText = "CALIBRATING SYNA-LINK...";
+                document.getElementById('boot-overlay').style.opacity = "0"; // 5s Reveal
 
                 new GLTFLoader().load(URL.createObjectURL(file), (gltf) => {
                     rigRobot(gltf);
                     controls.lock();
                     setTimeout(() => {
-                        term.style.opacity = "0";
+                        menu.style.opacity = "0";
                         document.getElementById('halo-hud').style.opacity = "1";
-                        setTimeout(() => term.style.display = 'none', 1000);
+                        setTimeout(() => menu.style.display = 'none', 1000);
                     }, 5000);
                 });
             };
-        }
-
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-            scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.0));
-            
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(500,500), new THREE.MeshPhongMaterial({ color: 0x222222 }));
-            floor.rotation.x = -Math.PI/2; scene.add(floor);
-
-            controls = new PointerLockControls(cameraGroup, document.body);
-            initNeuralFlow();
-            animate();
         }
 
         function animate() {
@@ -202,7 +223,9 @@
             if (e.code === 'KeyD') moveRight = false;
         });
 
-        init();
+        initWorld();
+        initBootSystem();
+        animate();
     </script>
 </body>
 </html>
