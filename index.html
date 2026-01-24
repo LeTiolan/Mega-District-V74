@@ -175,22 +175,6 @@
         </div>
     </div>
 
-    <div id="inventory-overlay">
-        <div class="inventory-window">
-            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
-            <div style="flex: 1.2; display: flex; flex-direction: column;">
-                <div class="inv-header">Cargo</div>
-                <div class="inv-grid" id="inv-grid-container"></div>
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
@@ -199,32 +183,27 @@
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
-        let health = 100, stamina = 100;
+        let stamina = 100;
         const collidableBoxes = []; 
-        const playerSize = 0.7;
-        let isInventoryOpen = false;
 
-        /* --- SLIDE & JUMP PARAMS --- */
+        /* --- MANEUVER PARAMS --- */
         let isSliding = false;
         let slideTimer = 0;
         let slideCooldown = 0;
         const slideMaxDuration = 1.0; 
-        const slideMaxCooldown = 4.0; 
-        const slideSpeedMultiplier = 3.5;
-        const JUMP_FORCE = 22; 
-        const GRAVITY_VAL = 48.0; 
-
+        const slideMaxCooldown = 3.0; 
+        const slideSpeedMultiplier = 3.8;
         const blurElem = document.getElementById('blur-overlay');
         const cdFill = document.getElementById('cd-fill');
+
+        /* --- AUDIO GLOBALS --- */
+        let audioCtx, slideNoise, slideGain, initialized = false;
 
         function startLoading() {
             const fill = document.getElementById('loader-fill');
             const screen = document.getElementById('loading-screen');
             const menu = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const paragraphs = document.querySelectorAll('#menu-content p');
             let progress = 0;
-
             const interval = setInterval(() => {
                 progress += Math.random() * 5;
                 if (progress >= 100) {
@@ -234,15 +213,6 @@
                     setTimeout(() => {
                         menu.style.opacity = '1';
                         screen.style.opacity = '0';
-                        title.classList.add('animate-type');
-                        setTimeout(() => {
-                            paragraphs.forEach((p, i) => {
-                                setTimeout(() => {
-                                    p.classList.add('show-p');
-                                    if(p.id === 'start-btn') p.classList.add('ready-pulse');
-                                }, i * 120);
-                            });
-                        }, 2200);
                         setTimeout(() => screen.style.display = 'none', 800);
                     }, 400);
                 }
@@ -250,58 +220,56 @@
             }, 40);
         }
 
-        function createStonyTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#999999';
-            context.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 30000; i++) {
-                const x = Math.random() * 512; const y = Math.random() * 512;
-                const shade = Math.floor(Math.random() * 20) + 140; 
-                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`;
-                context.fillRect(x, y, 1, 1);
+        function initAudio() {
+            if (initialized) {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return;
             }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(18, 18);
-            return texture;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Sandpaper Noise Generation
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            slideNoise = audioCtx.createBufferSource();
+            slideNoise.buffer = buffer;
+            slideNoise.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1800; // The "Grit"
+            filter.Q.value = 1.5;
+
+            slideGain = audioCtx.createGain();
+            slideGain.gain.value = 0;
+
+            slideNoise.connect(filter);
+            filter.connect(slideGain);
+            slideGain.connect(audioCtx.destination);
+            slideNoise.start();
+
+            initialized = true;
         }
 
-        function createLightTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#f7f7f7';
-            context.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < 15000; i++) {
-                const x = Math.random() * 256; const y = Math.random() * 256;
-                const opacity = Math.random() * 0.05;
-                context.fillStyle = `rgba(0,0,0,${opacity})`;
-                context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
-
-        function createBuilding(x, z) {
-            const w = 12 + Math.random() * 8;
-            const h = 10 + Math.random() * 15;
-            const d = 12 + Math.random() * 8;
-            const baseGeo = new THREE.BoxGeometry(w, h, d);
-            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.set(x, h/2, z);
-            scene.add(base);
-            collidableBoxes.push(new THREE.Box3().setFromObject(base));
+        function playHeavyThud() {
+            if (!initialized) return;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.2);
+            g.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
         }
 
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
@@ -314,158 +282,11 @@
             document.body.appendChild(renderer.domElement);
 
             controls = new PointerLockControls(cameraGroup, document.body);
-            const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', () => {
+            document.getElementById('start-btn').addEventListener('click', () => {
+                initAudio();
                 controls.lock();
-                // Ensure audio initializes on click
-                if (window.initGameSounds) window.initGameSounds();
             });
 
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-
-            for (let i = 0; i < 60; i++) {
-                const x = (Math.random() - 0.5) * 400;
-                const z = (Math.random() - 0.5) * 400;
-                if (Math.abs(x) > 15 || Math.abs(z) > 15) createBuilding(x, z);
-            }
-
-            document.addEventListener('keydown', (e) => {
-                if (e.code === 'KeyW') moveForward = true;
-                if (e.code === 'KeyS') moveBackward = true;
-                if (e.code === 'KeyA') moveLeft = true;
-                if (e.code === 'KeyD') moveRight = true;
-                if (e.code === 'ShiftLeft') isRunning = true;
-                if (e.code === 'Space' && canJump) { velocity.y += JUMP_FORCE; canJump = false; }
-                if (e.code === 'ControlLeft' && canJump && !isSliding && slideCooldown <= 0) {
-                    isSliding = true; slideTimer = slideMaxDuration; slideCooldown = slideMaxCooldown;
-                    blurElem.style.opacity = '1';
-                }
-            });
-
-            document.addEventListener('keyup', (e) => {
-                if (e.code === 'KeyW') moveForward = false;
-                if (e.code === 'KeyS') moveBackward = false;
-                if (e.code === 'KeyA') moveLeft = false;
-                if (e.code === 'KeyD') moveRight = false;
-                if (e.code === 'ShiftLeft') isRunning = false;
-                if (e.code === 'ControlLeft') isSliding = false;
-            });
-
-            startLoading();
-            animate();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = performance.now();
-            const delta = (time - prevTime) / 1000;
-
-            if (controls.isLocked) {
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
-                velocity.y -= GRAVITY_VAL * delta; 
-
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
-
-                if (slideCooldown > 0) slideCooldown -= delta;
-                cdFill.style.width = (100 - (Math.max(0, slideCooldown) / slideMaxCooldown) * 100) + '%';
-
-                if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta;
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.2, 0.2);
-                    velocity.z -= direction.z * 400 * delta;
-                    velocity.x -= direction.x * 400 * delta;
-                    if (slideTimer <= 0) { isSliding = false; blurElem.style.opacity = '0'; }
-                } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
-                    const speed = isRunning ? 200.0 : 130.0;
-                    if (moveForward || moveBackward || moveLeft || moveRight) {
-                        velocity.z -= direction.z * speed * delta;
-                        velocity.x -= direction.x * speed * delta;
-                    }
-                    blurElem.style.opacity = '0';
-                }
-
-                controls.moveForward(-velocity.z * delta);
-                controls.moveRight(-velocity.x * delta);
-                cameraGroup.position.y += (velocity.y * delta);
-
-                // Heavy Impact Logic
-                if (cameraGroup.position.y < 5) {
-                    if (velocity.y < -20 && window.playHeavyImpact) window.playHeavyImpact();
-                    velocity.y = 0; cameraGroup.position.y = 5; canJump = true;
-                }
-            }
-            prevTime = time;
-            renderer.render(scene, camera);
-        }
-
-        /* --- GAME SOUNDS ENGINE --- */
-        (function() {
-            let audioCtx, slideNoise, slideGain;
-            let initialized = false;
-
-            window.initGameSounds = () => {
-                if (initialized) {
-                    if (audioCtx.state === 'suspended') audioCtx.resume();
-                    return;
-                }
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Sandpaper Buffer
-                const bufferSize = audioCtx.sampleRate * 2;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-                slideNoise = audioCtx.createBufferSource();
-                slideNoise.buffer = buffer;
-                slideNoise.loop = true;
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = 1800; // Grit frequency
-                filter.Q.value = 1.0;
-
-                slideGain = audioCtx.createGain();
-                slideGain.gain.value = 0;
-
-                slideNoise.connect(filter);
-                filter.connect(slideGain);
-                slideGain.connect(audioCtx.destination);
-                slideNoise.start();
-
-                // Global Impact Trigger
-                window.playHeavyImpact = () => {
-                    const osc = audioCtx.createOscillator();
-                    const g = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.15);
-                    g.gain.setValueAtTime(0.7, audioCtx.currentTime);
-                    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                    osc.connect(g); g.connect(audioCtx.destination);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-                };
-
-                initialized = true;
-            };
-
-            // Update Volume Loop
-            const updateVolume = () => {
-                requestAnimationFrame(updateVolume);
-                if (!initialized) return;
-                const target = isSliding ? 0.3 : 0;
-                slideGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.05);
-            };
-            updateVolume();
-        })();
-
-        init();
-    </script>
-</body>
-</html>
+            // Floor
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            floor.
