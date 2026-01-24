@@ -207,38 +207,6 @@
         const playerSize = 0.7;
         let isInventoryOpen = false;
 
-        /* --- GLOBAL AUDIO HELPERS --- */
-        // We use this function for that "wooden clack" on hover for ALL menus
-        function playHoverSound() {
-            // Find existing listener or wait for init
-            const listener = camera.children.find(c => c instanceof THREE.AudioListener);
-            if (!listener) return;
-            const ctx = listener.context;
-            
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            const filter = ctx.createBiquadFilter();
-
-            // Wooden "Tock" Profile
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(600, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
-
-            filter.type = 'bandpass';
-            filter.frequency.value = 1200;
-            filter.Q.value = 5;
-
-            gain.gain.setValueAtTime(0, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.07);
-        }
-
         /* --- SLIDE SYSTEM --- */
         let isSliding = false;
         let slideTimer = 0;
@@ -362,10 +330,6 @@
             cameraGroup.add(camera);
             scene.add(cameraGroup);
 
-            // Audio Listener setup early so it's available for UI
-            const audioListener = new THREE.AudioListener();
-            camera.add(audioListener);
-
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -387,9 +351,6 @@
             const startBtn = document.getElementById('start-btn');
             
             controls = new PointerLockControls(cameraGroup, document.body);
-            
-            // --- LINK WOOD HOVER TO START BUTTON ---
-            startBtn.addEventListener('mouseenter', () => playHoverSound());
             startBtn.addEventListener('mousedown', () => controls.lock());
             
             controls.addEventListener('lock', () => {
@@ -581,10 +542,6 @@
                     dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color;
                     slot.appendChild(dot);
                 }
-                
-                // --- LINK WOOD HOVER TO INVENTORY SLOTS ---
-                slot.addEventListener('mouseenter', () => playHoverSound());
-                
                 slot.onclick = () => {
                     document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
                     slot.classList.add('active');
@@ -594,10 +551,7 @@
                 };
                 grid.appendChild(slot);
             }
-            
-            const closeBtn = document.getElementById('inv-close-btn');
-            closeBtn.onclick = toggleInventory;
-            closeBtn.addEventListener('mouseenter', () => playHoverSound());
+            document.getElementById('inv-close-btn').onclick = toggleInventory;
         }
 
         function toggleInventory() {
@@ -617,35 +571,26 @@
         init();
         animate();
 
-        /* --- SEPARATE AMBIENT WIND & ENVIRONMENT SYSTEM --- */
+        /* --- AMBIENT WIND SYSTEM --- */
         (function() {
             let districtWind, audioListener;
             let isPlaying = false;
             let nextBirdTime = 0;
 
             const setupEnvironment = () => {
-                // Find existing listener or create if somehow missing
-                audioListener = camera.children.find(c => c instanceof THREE.AudioListener);
-                if(!audioListener) {
-                    audioListener = new THREE.AudioListener();
-                    camera.add(audioListener);
-                }
-
+                audioListener = new THREE.AudioListener();
+                camera.add(audioListener);
                 districtWind = new THREE.Audio(audioListener);
                 const ctx = audioListener.context;
                 const bufferSize = 2 * ctx.sampleRate;
                 const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
-
                 for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-
                 districtWind.setBuffer(noiseBuffer);
                 districtWind.setLoop(true);
                 districtWind.setVolume(0);
-
                 const windFilter = ctx.createBiquadFilter();
-                windFilter.type = 'lowpass';
-                windFilter.frequency.value = 250; 
+                windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
                 districtWind.setFilter(windFilter);
             };
 
@@ -695,7 +640,7 @@
             };
         })();
 
-        /* --- SEPARATE METALLIC FOOTSTEP SYSTEM --- */
+        /* --- FOOTSTEP SYSTEM --- */
         (function() {
             let nextStepTime = 0;
 
@@ -703,57 +648,118 @@
                 const listener = camera.children.find(c => c instanceof THREE.AudioListener);
                 if (!listener) return;
                 const ctx = listener.context;
-                
                 const osc = ctx.createOscillator();
                 const noise = ctx.createBufferSource();
                 const gain = ctx.createGain();
                 const filter = ctx.createBiquadFilter();
-
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(2500, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
-
                 const bufferSize = ctx.sampleRate * 0.1;
                 const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 noise.buffer = buffer;
-
-                filter.type = 'bandpass';
-                filter.frequency.value = 800;
-                filter.Q.value = 1;
-
+                filter.type = 'bandpass'; filter.frequency.value = 800; filter.Q.value = 1;
                 gain.gain.setValueAtTime(0, ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(volume * 0.15, ctx.currentTime + 0.01);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-
-                osc.connect(gain);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-                noise.start();
-                osc.stop(ctx.currentTime + 0.1);
-                noise.stop(ctx.currentTime + 0.1);
+                osc.connect(gain); noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+                osc.start(); noise.start(); osc.stop(ctx.currentTime + 0.1); noise.stop(ctx.currentTime + 0.1);
             };
 
             const originalAnimate = animate;
             animate = function() {
                 originalAnimate();
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                
                 if (controls.isLocked && canJump && isMoving && !isSliding) {
                     const time = performance.now();
                     const actualRunning = isRunning && stamina > 0;
                     const stepInterval = actualRunning ? 300 : 500; 
-
                     if (time > nextStepTime) {
                         playMetallicStep(actualRunning ? 1.2 : 0.7);
                         nextStepTime = time + stepInterval;
                     }
                 }
             };
+        })();
+    </script>
+
+    <script>
+        (function() {
+            const playWoodSound = (isMenu) => {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                
+                // --- The "Body" of the sound ---
+                const bodyOsc = audioCtx.createOscillator();
+                const bodyGain = audioCtx.createGain();
+                const bodyFilter = audioCtx.createBiquadFilter();
+                
+                // MENU = Deep Thud (300Hz), INVENTORY = Standard Clack (600Hz)
+                const startFreq = isMenu ? 300 : 600;
+                const endFreq = isMenu ? 50 : 250;
+                
+                bodyOsc.type = 'triangle';
+                bodyOsc.frequency.setValueAtTime(startFreq, now);
+                bodyOsc.frequency.exponentialRampToValueAtTime(endFreq, now + (isMenu ? 0.15 : 0.04));
+                
+                bodyFilter.type = 'lowpass'; 
+                bodyFilter.frequency.value = isMenu ? 800 : 1200;
+                
+                bodyGain.gain.setValueAtTime(0, now);
+                bodyGain.gain.linearRampToValueAtTime(isMenu ? 0.2 : 0.08, now + 0.005);
+                bodyGain.gain.exponentialRampToValueAtTime(0.001, now + (isMenu ? 0.2 : 0.06));
+                
+                // --- The "Impact" (The initial contact) ---
+                const impactOsc = audioCtx.createOscillator();
+                const impactGain = audioCtx.createGain();
+                
+                impactOsc.type = 'sine';
+                impactOsc.frequency.setValueAtTime(isMenu ? 1000 : 2200, now);
+                
+                impactGain.gain.setValueAtTime(0, now);
+                impactGain.gain.linearRampToValueAtTime(isMenu ? 0.03 : 0.05, now + 0.002);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+                
+                bodyOsc.connect(bodyFilter);
+                bodyFilter.connect(bodyGain);
+                bodyGain.connect(audioCtx.destination);
+                
+                impactOsc.connect(impactGain);
+                impactGain.connect(audioCtx.destination);
+                
+                bodyOsc.start();
+                impactOsc.start();
+                bodyOsc.stop(now + 0.3);
+                impactOsc.stop(now + 0.3);
+            };
+
+            // TARGET: Main Menu Start Button (Heavier Thud)
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('mouseenter', () => playWoodSound(true));
+                startBtn.addEventListener('mousedown', () => playWoodSound(true));
+            }
+
+            // TARGET: Inventory/UI Elements (Standard Clack)
+            const linkUI = setInterval(() => {
+                const slots = document.querySelectorAll('.inv-slot');
+                const closeBtn = document.getElementById('inv-close-btn');
+                
+                if (slots.length > 0) {
+                    slots.forEach(slot => {
+                        slot.addEventListener('mouseenter', () => playWoodSound(false));
+                        slot.addEventListener('click', () => playWoodSound(false));
+                    });
+                    
+                    if (closeBtn) {
+                        closeBtn.addEventListener('mouseenter', () => playWoodSound(false));
+                        closeBtn.addEventListener('click', () => playWoodSound(false));
+                    }
+                    clearInterval(linkUI);
+                }
+            }, 500);
         })();
     </script>
 </body>
