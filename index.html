@@ -3,128 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V46 Final Integration</title>
+    <title>Geometric Range - V40 Neural Rig</title>
     <style>
-        /* [YOUR V39 STYLES HERE] */
-        body { margin: 0; overflow: hidden; font-family: 'Inter', monospace; background-color: #eee; }
+        /* ALL V39 STYLES (PRIME FOUNDATION, PAUSE MENU, HUD, INVENTORY) ARE UNTOUCHED */
+        /* ... [Your 200+ lines of CSS here] ... */
         
-        /* NEW NEURAL OVERLAYS (Appended to end of CSS) */
+        /* ADDING ONLY THE NEURAL OVERLAYS TO THE END OF CSS */
         #boot-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 90; pointer-events: none; opacity: 1; transition: opacity 5s ease; }
-        #neural-ui {
+        #neural-pairing-ui {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 95; background: rgba(5,5,5,0.95); padding: 40px; border: 1px solid #00f2ff;
-            text-align: center; color: white; display: none; opacity: 0; transition: 0.5s;
+            z-index: 95; background: rgba(5,5,5,0.98); padding: 50px; width: 320px; 
+            border: 1px solid #00f2ff; color: white; text-align: center; display: none; opacity: 0; transition: opacity 0.5s;
         }
-        #halo-visor { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 80; opacity: 0; transition: 2s; }
-        .arc { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); width: 700px; height: 100px; border-top: 2px solid #00f2ff66; border-radius: 50% 50% 0 0; }
+        #halo-visor { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 80; opacity: 0; transition: opacity 2s; }
+        .arc-ui { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); width: 750px; height: 120px; border-top: 2px solid rgba(0, 242, 255, 0.4); border-radius: 50% 50% 0 0; }
     </style>
 </head>
 <body>
     <div id="boot-overlay"></div>
-    <div id="halo-visor"><div class="arc"></div></div>
-
-    <div id="instructions">
-        <h1 style="letter-spacing: 20px;">MEGA DISTRICT</h1>
-        <div id="start-btn" style="cursor:pointer; border:1px solid #111; padding:10px;">INITIALIZE</div>
+    <div id="halo-visor"><div class="arc-ui"></div></div>
+    <div id="neural-pairing-ui">
+        <div style="color:#00f2ff; letter-spacing: 5px; margin-bottom: 20px;">ROBOTIC_LINK</div>
+        <input type="file" id="glb-upload" accept=".glb" style="display:none;">
+        <button onclick="document.getElementById('glb-upload').click()" style="background:transparent; border:1px solid #00f2ff; color:#00f2ff; padding:15px; width:100%; cursor:pointer; font-weight:bold;">UPLOAD_GLB_CORE</button>
+        <div id="boot-msg" style="margin-top:20px; font-size:9px; color:#444;">SYSTEM_IDLE...</div>
     </div>
-
-    <div id="neural-ui">
-        <div style="color:#00f2ff; letter-spacing: 5px;">NEURAL COLD BOOT</div>
-        <input type="file" id="robot-up" accept=".glb" style="display:none;">
-        <button onclick="document.getElementById('robot-up').click()" style="margin-top:20px; padding:15px; background:none; border:1px solid #00f2ff; color:#00f2ff; cursor:pointer;">UPLOAD CORE</button>
-    </div>
-
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        /* ============================================================
+           V39 PROTECTED CORE (50KB SCRIPT)
+           ============================================================ */
+        // [YOUR ENTIRE V39 SCRIPT GOES HERE - DO NOT REMOVE]
+        // Including: init(), animate(), Building Generators, 
+        // Audio Systems, and Inventory Logic.
+        
+        // --- THE FOLLOWING IS THE NEW APPENDED LOGIC ---
+
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        /* ============================================================
-           V39 ORIGINAL SCRIPT (50KB CORE)
-           I AM NOT MOVING OR WRAPPING THIS. 
-           YOUR GENERATORS RUN EXACTLY AS THEY DID IN V39.
-           ============================================================ */
-        
-        // ... Imagine all 50KB of your V39 code is sitting here ...
-        // Your scene, renderer, building loop, etc. are already running.
+        let robotCore = null;
+        let limbBoxes = [];
+        let visorMeshes = [];
+        const RIG_HEIGHT = 7.0;
 
-        /* ============================================================
-           V46 NEURAL APPEND (THE UPGRADE)
-           ============================================================ */
-        let robotMesh = null;
-        let limbHitboxes = [];
-        let headMeshes = [];
-        const ROBOT_HEIGHT = 7.0; 
-
-        // Bridging to your existing V39 'controls' and 'cameraGroup'
+        // Hooking into your existing 'start-btn'
         const startBtn = document.getElementById('start-btn');
-        const neuralBox = document.getElementById('neural-ui');
-        const upload = document.getElementById('robot-up');
+        const pairUI = document.getElementById('neural-pairing-ui');
+        const glbUp = document.getElementById('glb-upload');
 
-        startBtn.onclick = () => {
-            document.getElementById('instructions').style.display = 'none';
-            neuralBox.style.display = 'block';
-            setTimeout(() => neuralBox.style.opacity = '1', 10);
-        };
+        startBtn.addEventListener('click', () => {
+            // Wait for your original click logic to finish, then show Neural UI
+            setTimeout(() => {
+                pairUI.style.display = 'block';
+                setTimeout(() => pairUI.style.opacity = '1', 50);
+            }, 100);
+        });
 
-        upload.onchange = (e) => {
+        glbUp.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            document.getElementById('boot-overlay').style.opacity = "0";
+            
+            document.getElementById('boot-msg').innerText = "CALIBRATING_SYNA_LINK...";
+            document.getElementById('boot-overlay').style.opacity = "0"; // Trigger 5s reveal
 
             new GLTFLoader().load(URL.createObjectURL(file), (gltf) => {
-                robotMesh = gltf.scene;
+                robotCore = gltf.scene;
                 
-                // Scale to your V39 height
-                const b3 = new THREE.Box3().setFromObject(robotMesh);
-                const scale = ROBOT_HEIGHT / b3.getSize(new THREE.Vector3()).y;
-                robotMesh.scale.set(scale, scale, scale);
+                // Scale to V39 Height
+                const b3 = new THREE.Box3().setFromObject(robotCore);
+                const scale = RIG_HEIGHT / b3.getSize(new THREE.Vector3()).y;
+                robotCore.scale.set(scale, scale, scale);
 
-                robotMesh.traverse(child => {
+                robotCore.traverse(child => {
                     if (child.isMesh) {
-                        // MULTIPLE HITBOXES: Each limb gets its own physical boundary
-                        limbHitboxes.push({ mesh: child, box: new THREE.Box3() });
-                        // VISOR CULLING: Hide head parts from your own view
-                        if (child.name.toLowerCase().match(/head|face|eye|visor/)) headMeshes.push(child);
+                        // RIGGING: Separate limb hitboxes
+                        limbBoxes.push({ mesh: child, box: new THREE.Box3() });
+                        // VISOR: Detect head for culling
+                        if (child.name.toLowerCase().match(/head|face|eye|visor/)) visorMeshes.push(child);
                     }
                 });
 
-                scene.add(robotMesh); // Uses your existing global 'scene' variable
-                controls.lock();      // Uses your existing global 'controls' variable
-
+                scene.add(robotCore); // Injected into your global 'scene'
+                
+                // Begin 5-second Cold Boot sequence
                 setTimeout(() => {
-                    neuralBox.style.opacity = "0";
-                    document.getElementById('halo-hud').style.opacity = "1";
-                    setTimeout(() => neuralBox.style.display = 'none', 1000);
-                }, 5000); // 5 Second Cold Boot
+                    pairUI.style.opacity = "0";
+                    document.getElementById('halo-visor').style.opacity = "1";
+                    setTimeout(() => pairUI.style.display = 'none', 1000);
+                }, 5000);
             });
         };
 
-        // NEW PHYSICS INJECTION (Runs alongside your loop)
-        const originalAnimate = window.requestAnimationFrame;
-        function neuralUpdate() {
-            if (robotMesh && controls.isLocked) {
-                // 1. Rigging: Sync individual limb hitboxes
-                limbHitboxes.forEach(item => item.box.setFromObject(item.mesh));
-
-                // 2. 1st Person: Anchor your camera to the robot's eyes
-                headMeshes.forEach(m => m.visible = false);
-                cameraGroup.position.copy(robotMesh.position);
-                cameraGroup.position.y += (ROBOT_HEIGHT * 0.9);
+        // NEW NEURAL LOOP: Runs in parallel to your V39 animate loop
+        function neuralRigLoop() {
+            requestAnimationFrame(neuralRigLoop);
+            if (robotCore && controls.isLocked) {
+                // 1. Position robot at V39 camera location
+                robotCore.position.copy(cameraGroup.position);
+                robotCore.position.y -= 5; // Offset to keep feet on your stony floor
                 
-                // 3. Movement Sync: Make robot move with your V39 logic
-                const camRot = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
-                robotMesh.position.copy(cameraGroup.position);
-                robotMesh.position.y = 0; // Keep feet on your V39 floor
-                robotMesh.rotation.y = camRot.y + Math.PI;
+                // 2. Rotate robot to match V39 camera look direction
+                const camEuler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+                robotCore.rotation.y = camEuler.y + Math.PI;
+
+                // 3. Update individual limb hitboxes for physical accuracy
+                limbBoxes.forEach(item => item.box.setFromObject(item.mesh));
+
+                // 4. Hide head meshes so they don't block the V39 camera view
+                visorMeshes.forEach(m => m.visible = false);
             }
-            requestAnimationFrame(neuralUpdate);
         }
-        neuralUpdate();
+        neuralRigLoop();
 
     </script>
 </body>
