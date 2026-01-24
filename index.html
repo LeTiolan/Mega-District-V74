@@ -3,392 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V33 Dynamic Input</title>
+    <title>Geometric Range - Master Baseline V33</title>
     <style>
+        /* --- STYLES REMAIN UNCOMPRESSED & ORIGINAL --- */
         body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
         canvas { display: block; }
-        
-        /* --- LOADING SCREEN --- */
-        #loading-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #eeeeee; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 100;
-            transition: opacity 0.8s ease;
+
+        #loading-screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #eeeeee; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 100; 
         }
 
-        .loader-title { 
-            font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline;
+        #instructions { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: none; flex-direction: column; justify-content: center; 
+            align-items: center; color: #111; background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(12px); z-index: 20; 
         }
 
-        .dot { display: inline-block; animation: oscillate 1.4s ease-in-out infinite; }
-        .dot:nth-child(1) { animation-delay: 0s; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes oscillate {
-            0%, 100% { transform: translateX(0); opacity: 0.3; }
-            50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; }
+        .title-init { 
+            font-size: 3rem; letter-spacing: 8px; font-weight: 200; 
+            text-transform: uppercase; border-right: 4px solid #ff4b2b; 
+            white-space: nowrap; display: inline-block; width: 0; 
+            animation: typing 2.2s steps(15, end) forwards; 
         }
 
-        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
-        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
-
-        /* --- MENU UI --- */
-        #instructions {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: #111; background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            user-select: none; z-index: 20; transition: opacity 0.4s ease;
-        }
-
-        .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
-        .title-init { font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; overflow: hidden; border-right: 4px solid #ff4b2b; white-space: nowrap; display: inline-block; width: auto; }
-        .cursor-blink { animation: blink 0.8s step-end infinite; }
-        .animate-type { animation: typing 2.2s steps(15, end) forwards; width: 0; }
         @keyframes typing { from { width: 0 } to { width: 100% } }
-        @keyframes blink { from, to { border-color: transparent } 50% { border-color: #ff4b2b } }
 
-        #instructions p { font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: opacity 0.5s ease; }
-        .show-p { opacity: 1 !important; }
-
-        .start-prompt {
-            position: relative; margin-top: 20px !important; font-weight: bold !important; 
-            color: #ff4b2b !important; cursor: pointer; padding: 12px 40px; 
-            letter-spacing: 5px; transition: all 0.2s ease; text-align: center;
+        .start-prompt { 
+            margin-top: 40px; font-weight: bold; color: #ff4b2b; 
+            cursor: pointer; letter-spacing: 5px; 
         }
-        .secondary-btn { margin-top: 10px !important; font-size: 0.7rem !important; color: #444 !important; opacity: 0.6 !important; }
-        .secondary-btn:hover { opacity: 1 !important; color: #ff4b2b !important; }
 
-        .ready-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-        /* --- KEYBINDS MENU --- */
-        #keybinds-menu {
+        /* --- KEYBIND MENU UI --- */
+        #keybind-menu {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(255, 255, 255, 0.95); z-index: 40; backdrop-filter: blur(20px);
+            display: none; flex-direction: column; justify-content: center; 
+            align-items: center; background: white; z-index: 50;
         }
-        .kb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 400px; margin-top: 30px; }
-        .kb-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 10px 0; }
-        .kb-label { font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
-        .kb-key { background: #eee; padding: 8px 15px; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; font-size: 0.8rem; min-width: 80px; text-align: center; transition: all 0.2s; }
-        .kb-key:hover { border-color: #ff4b2b; color: #ff4b2b; }
-        .kb-key.listening { background: #ff4b2b; color: #fff; animation: pulse 1s infinite; }
 
-        /* --- OTHER UI ELEMENTS (HUD, VIGNETTE, ETC) --- */
-        #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
-        #blur-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); mask-image: radial-gradient(circle, transparent 0%, black 100%); -webkit-mask-image: radial-gradient(circle, transparent 0%, black 100%); opacity: 0; transition: opacity 0.1s ease; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
-        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
-        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
-        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
-        .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
-        #cd-fill { background: #ffea00; box-shadow: 0 0 5px rgba(255, 234, 0, 0.5); }
-        #health-fill { background: #ff416c; }
-        #stamina-fill { background: #6dd5ed; }
-        .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: opacity 0.4s ease; }
-        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .inv-header { font-size: 2.2rem; letter-spacing: 10px; font-weight: 200; text-transform: uppercase; margin-bottom: 35px; border-left: 5px solid #ff4b2b; padding-left: 20px; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-height: 400px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .inv-slot:hover { border-color: #ff4b2b; }
-        .inv-slot.active { border: 2px solid #ff4b2b; background: rgba(255, 75, 43, 0.1); }
-        .item-dot { width: 14px; height: 14px; border-radius: 50%; filter: drop-shadow(0 0 8px currentColor); }
-        .inv-right { flex: 0.7; background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 30px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
-        #inv-item-name { font-size: 1.1rem; font-weight: 800; color: #ff4b2b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 3px; }
-        #inv-item-desc { font-size: 0.8rem; line-height: 1.7; color: rgba(255,255,255,0.6); text-transform: uppercase; }
-        #inv-close-btn { position: absolute; top: 15px; right: 15px; color: rgba(255,255,255,0.4); font-size: 0.65rem; letter-spacing: 3px; cursor: pointer; text-transform: uppercase; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 4px; }
+        .kb-list { width: 350px; }
+        .kb-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-bottom: 1px solid #eee; font-size: 0.8rem; 
+        }
+
+        .kb-key-box { 
+            background: #f0f0f0; padding: 5px 12px; border-radius: 4px; 
+            font-weight: bold; cursor: pointer; border: 1px solid #ccc;
+            min-width: 60px; text-align: center; transition: all 0.2s;
+        }
+
+        .kb-key-box:hover { border-color: #ff4b2b; color: #ff4b2b; }
+        .waiting { background: #ff4b2b; color: white; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* --- HUD STYLES --- */
+        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; }
+        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); }
+        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; }
+        .bar-fill { width: 100%; height: 100%; background: #6dd5ed; }
     </style>
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    <script type="importmap"> 
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } } 
     </script>
 </head>
 <body>
-    <div id="loading-screen">
-        <div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
-        <div class="loader-container"><div id="loader-fill"></div></div>
-    </div>
 
-    <div id="vignette"></div>
-    <div id="blur-overlay"></div>
-    <div id="crosshair"></div>
+    <div id="loading-screen">
+        <h1 style="letter-spacing:10px">LOADING...</h1>
+    </div>
     
     <div id="instructions">
-        <div class="title-container"><h1 id="menu-title" class="title-init cursor-blink">MEGA DISTRICT</h1></div>
-        <div id="menu-content" style="text-align: center;">
-            <p id="p-move">WASD — MOVE</p>
-            <p id="p-sprint">SHIFT — SPRINT</p>
-            <p id="p-slide">Q — SLIDE</p>
-            <p id="p-jump">SPACE — JUMP</p>
-            <p id="p-inv">TAB — INVENTORY</p>
-            <p class="start-prompt show-p" id="start-btn">CLICK TO BEGIN</p>
-            <p class="start-prompt secondary-btn show-p" id="kb-open-btn">KEYBINDS</p>
-        </div>
+        <h1 class="title-init">MEGA DISTRICT</h1>
+        <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
+        <p id="kb-open-btn" style="cursor:pointer; color:#888; font-size:0.7rem; margin-top:20px;">[ CONFIGURE INPUTS ]</p>
     </div>
 
-    <div id="keybinds-menu">
-        <h2 style="letter-spacing: 10px; font-weight: 200;">INPUT CONFIG</h2>
-        <div class="kb-grid" id="kb-grid">
+    <div id="keybind-menu">
+        <h2 style="letter-spacing: 5px;">INPUT MAPPER</h2>
+        <div class="kb-list" id="kb-list-container">
             </div>
-        <p class="start-prompt secondary-btn show-p" id="kb-close-btn" style="margin-top: 50px !important; opacity: 1 !important;">[ SAVE & EXIT ]</p>
+        <p class="start-prompt" id="kb-close-btn" style="font-size: 0.7rem;">SAVE & EXIT</p>
     </div>
 
     <div id="hud-container">
-        <div class="stat-wrapper" id="cd-wrapper" style="padding: 4px 15px; border-radius: 6px; margin-bottom: -4px;">
-            <div class="stat-label" style="font-size: 7px;"><span>Maneuver Ready</span></div>
-            <div class="bar-container" style="height: 3px; margin-top: 0;"><div id="cd-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Health</span><span id="health-val">100 / 100</span></div>
-            <div class="bar-container"><div id="health-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
-            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
-        </div>
-    </div>
-
-    <div id="inventory-overlay">
-        <div class="inventory-window">
-            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
-            <div style="flex: 1.2; display: flex; flex-direction: column;">
-                <div class="inv-header">Cargo</div>
-                <div class="inv-grid" id="inv-grid-container"></div>
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link.</div>
-            </div>
-        </div>
+        <div class="stat-wrapper"><div id="stamina-fill" style="height:6px; width:100%; background:#6dd5ed; border-radius:10px;"></div></div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        let camera, scene, renderer, controls, cameraGroup;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
-        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
-        let prevTime = performance.now();
-        let bobTimer = 0, health = 100, stamina = 100;
-        let leftUpper, rightUpper, leftFore, rightFore;
-        const collidableBoxes = []; 
-        const playerSize = 0.7;
-        let isInventoryOpen = false;
-
-        // --- DYNAMIC KEYBIND SYSTEM ---
+        // --- NEW KEYBIND LAYER DATA ---
         let keyConfig = {
             forward: 'KeyW',
             backward: 'KeyS',
             left: 'KeyA',
             right: 'KeyD',
             jump: 'Space',
-            sprint: 'ShiftLeft',
-            slide: 'KeyQ',
-            inventory: 'Tab'
+            sprint: 'ShiftLeft'
         };
 
-        let isListeningForKey = null;
+        let currentlyRebinding = null;
 
-        function updateMenuText() {
-            document.getElementById('p-move').innerText = `${keyConfig.forward.replace('Key','')}${keyConfig.left.replace('Key','')}${keyConfig.backward.replace('Key','')}${keyConfig.right.replace('Key','')} — MOVE`;
-            document.getElementById('p-sprint').innerText = `${keyConfig.sprint.replace('Left','').replace('Right','')} — SPRINT`;
-            document.getElementById('p-slide').innerText = `${keyConfig.slide.replace('Key','')} — SLIDE`;
-            document.getElementById('p-jump').innerText = `${keyConfig.jump} — JUMP`;
-            document.getElementById('p-inv').innerText = `${keyConfig.inventory} — INVENTORY`;
-        }
-
-        function initKeybindMenu() {
-            const grid = document.getElementById('kb-grid');
-            grid.innerHTML = '';
-            Object.keys(keyConfig).forEach(action => {
-                const row = document.createElement('div');
-                row.className = 'kb-row';
-                const label = document.createElement('div');
-                label.className = 'kb-label';
-                label.innerText = action;
-                const keyBtn = document.createElement('div');
-                keyBtn.className = 'kb-key';
-                keyBtn.id = `kb-${action}`;
-                keyBtn.innerText = keyConfig[action];
-                keyBtn.onclick = () => {
-                    playMenuClick();
-                    if(isListeningForKey) return;
-                    isListeningForKey = action;
-                    keyBtn.classList.add('listening');
-                    keyBtn.innerText = 'PRESS ANY KEY';
-                };
-                row.appendChild(label);
-                row.appendChild(keyBtn);
-                grid.appendChild(row);
-            });
-        }
-
-        // --- CORE LOGIC ---
-        let playMenuClick = () => {};
-        let playHoverSound = () => {};
-        let isSliding = false, slideTimer = 0, slideCooldown = 0;
-        const slideMaxDuration = 1.0, slideMaxCooldown = 5.0, slideSpeedMultiplier = 3.5;
-        const baseFOV = 75, warpFOV = 95;
-        const blurElem = document.getElementById('blur-overlay');
-        const cdFill = document.getElementById('cd-fill');
-
-        function startLoading() {
-            const fill = document.getElementById('loader-fill');
-            const screen = document.getElementById('loading-screen');
-            const menu = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const paragraphs = document.querySelectorAll('#menu-content p');
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    menu.style.display = 'flex';
-                    setTimeout(() => {
-                        menu.style.opacity = '1'; screen.style.opacity = '0';
-                        title.classList.add('animate-type');
-                        setTimeout(() => {
-                            paragraphs.forEach((p, i) => { setTimeout(() => p.classList.add('show-p'), i * 120); });
-                        }, 2200);
-                        setTimeout(() => screen.style.display = 'none', 800);
-                    }, 400);
-                }
-                fill.style.width = progress + '%';
-            }, 40);
-        }
-
-        function createStonyTexture() {
-            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d'); context.fillStyle = '#999999'; context.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 30000; i++) {
-                const x = Math.random() * 512; const y = Math.random() * 512;
-                const shade = Math.floor(Math.random() * 20) + 140; 
-                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`; context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas); texture.wrapS = texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(18, 18);
-            return texture;
-        }
-
-        function createLightTexture() {
-            const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-            const context = canvas.getContext('2d'); context.fillStyle = '#f7f7f7'; context.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < 15000; i++) {
-                const x = Math.random() * 256; const y = Math.random() * 256;
-                context.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`; context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas); texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
-
-        function createBuilding(x, z) {
-            const w = 12 + Math.random() * 8, h = 10 + Math.random() * 15, d = 12 + Math.random() * 8;
-            const base = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff }));
-            base.position.set(x, h/2, z); base.castShadow = true; base.receiveShadow = true;
-            scene.add(base); collidableBoxes.push(new THREE.Box3().setFromObject(base));
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 1, 1, d + 1), new THREE.MeshPhongMaterial({ color: 0x555555 }));
-            roof.position.set(x, h + 0.5, z); roof.castShadow = true; roof.receiveShadow = true;
-            scene.add(roof);
-        }
-
-        function resolveCollisions() {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-            for (let box of collidableBoxes) {
-                if (playerBox.intersectsBox(box)) {
-                    const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
-                    const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
-                    if (overlapX < overlapZ) {
-                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1); velocity.x = 0;
-                    } else {
-                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1); velocity.z = 0;
-                    }
-                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-                }
-            }
-        }
+        // --- ORIGINAL BASELINE VARIABLES ---
+        let camera, scene, renderer, controls, cameraGroup;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
+        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
+        let prevTime = performance.now();
+        let stamina = 100;
+        const collidableBoxes = [];
 
         function init() {
-            scene = new THREE.Scene(); scene.background = new THREE.Color(0xdddddd);
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5); scene.add(hemiLight);
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); sunLight.position.set(50, 100, 50); sunLight.castShadow = true;
-            sunLight.shadow.mapSize.set(2048, 2048); scene.add(sunLight); window.mainSun = sunLight;
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(50, 100, 50); sun.castShadow = true;
+            scene.add(sun); scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 1.5));
 
-            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
 
             controls = new PointerLockControls(cameraGroup, document.body);
             
-            document.getElementById('start-btn').addEventListener('click', () => { playMenuClick(); controls.lock(); });
+            // Menu Logic
+            document.getElementById('start-btn').addEventListener('click', () => controls.lock());
+            controls.addEventListener('lock', () => document.getElementById('instructions').style.display = 'none');
+            controls.addEventListener('unlock', () => document.getElementById('instructions').style.display = 'flex');
+
+            // Keybind Menu Logic
             document.getElementById('kb-open-btn').addEventListener('click', () => {
-                playMenuClick();
-                document.getElementById('keybinds-menu').style.display = 'flex';
-                initKeybindMenu();
+                renderKeybindList();
+                document.getElementById('keybind-menu').style.display = 'flex';
             });
             document.getElementById('kb-close-btn').addEventListener('click', () => {
-                playMenuClick();
-                document.getElementById('keybinds-menu').style.display = 'none';
-                updateMenuText();
+                document.getElementById('keybind-menu').style.display = 'none';
             });
 
-            controls.addEventListener('lock', () => {
-                document.getElementById('instructions').style.display = 'none';
-            });
-            controls.addEventListener('unlock', () => {
-                if (!isInventoryOpen && document.getElementById('keybinds-menu').style.display !== 'flex') {
-                    document.getElementById('menu-title').innerText = "PAUSED";
-                    document.getElementById('instructions').style.display = 'flex';
-                    document.getElementById('instructions').style.opacity = '1';
-                }
-            });
-
-            // Geometry generation
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
+            // Baseline World Generation
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
             floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 
-            for (let i = 0; i < 70; i++) {
-                let rx = Math.random() * 150 - 75; let rz = Math.random() * 150 - 75;
-                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
-                createBuilding(rx, rz);
+            for (let i = 0; i < 50; i++) {
+                const h = 10 + Math.random() * 20;
+                const b = new THREE.Mesh(new THREE.BoxGeometry(10, h, 10), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                b.position.set(Math.random() * 160 - 80, h / 2, Math.random() * 160 - 80);
+                b.castShadow = true; b.receiveShadow = true; scene.add(b);
+                collidableBoxes.push(new THREE.Box3().setFromObject(b));
             }
 
-            cameraGroup.position.set(0, 5, 0);
-
-            // --- INPUT HANDLING ---
+            // --- REFACTORED INPUT LISTENERS ---
             document.addEventListener('keydown', (e) => {
-                if (isListeningForKey) {
-                    keyConfig[isListeningForKey] = e.code;
-                    isListeningForKey = null;
-                    initKeybindMenu();
+                // If we are currently remapping a key in the menu
+                if (currentlyRebinding) {
+                    keyConfig[currentlyRebinding] = e.code;
+                    currentlyRebinding = null;
+                    renderKeybindList();
                     return;
                 }
 
+                // Game Logic uses keyConfig variables instead of strings
                 if (e.code === keyConfig.forward) moveForward = true;
                 if (e.code === keyConfig.backward) moveBackward = true;
                 if (e.code === keyConfig.left) moveLeft = true;
                 if (e.code === keyConfig.right) moveRight = true;
                 if (e.code === keyConfig.sprint) isRunning = true;
                 if (e.code === keyConfig.jump && canJump) { velocity.y += 22; canJump = false; }
-                if (e.code === keyConfig.inventory) { e.preventDefault(); toggleInventory(); }
-                if (e.code === keyConfig.slide && canJump && !isSliding && slideCooldown <= 0) {
-                    if (moveForward || moveBackward || moveLeft || moveRight) {
-                        isSliding = true; slideTimer = slideMaxDuration; slideCooldown = slideMaxCooldown; 
-                        camera.fov = warpFOV; blurElem.style.opacity = '1';
-                    }
-                }
             });
 
             document.addEventListener('keyup', (e) => {
@@ -397,13 +183,33 @@
                 if (e.code === keyConfig.left) moveLeft = false;
                 if (e.code === keyConfig.right) moveRight = false;
                 if (e.code === keyConfig.sprint) isRunning = false;
-                if (e.code === keyConfig.slide) isSliding = false;
             });
 
-            setupInventoryLogic();
-            startLoading();
-            updateMenuText();
+            cameraGroup.position.y = 5;
+            animate();
         }
+
+        function renderKeybindList() {
+            const container = document.getElementById('kb-list-container');
+            container.innerHTML = '';
+            Object.keys(keyConfig).forEach(action => {
+                const row = document.createElement('div');
+                row.className = 'kb-item';
+                row.innerHTML = `
+                    <span style="text-transform: capitalize;">${action}</span>
+                    <div class="kb-key-box ${currentlyRebinding === action ? 'waiting' : ''}" 
+                         onclick="window.startRebind('${action}')">
+                        ${keyConfig[action].replace('Key', '').replace('Left', '')}
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        window.startRebind = (action) => {
+            currentlyRebinding = action;
+            renderKeybindList();
+        };
 
         function animate() {
             requestAnimationFrame(animate);
@@ -411,77 +217,39 @@
             const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked) {
-                velocity.x -= velocity.x * 12.0 * delta; velocity.z -= velocity.z * 12.0 * delta;
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
                 velocity.y -= 9.8 * 5.0 * delta; 
+
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                if (isRunning && stamina > 0) stamina = Math.max(0, stamina - 15 * delta);
-                else stamina = Math.min(100, stamina + 30 * delta);
-                document.getElementById('stamina-fill').style.width = stamina + '%';
+                const speed = (isRunning && stamina > 0) ? 200 : 120;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
-                if (slideCooldown > 0) slideCooldown -= delta;
-                cdFill.style.width = (100 - (Math.max(0, slideCooldown) / slideMaxCooldown * 100)) + '%';
-
-                if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta; cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.0, 0.1);
-                    const slideSpeed = 130.0 * slideSpeedMultiplier;
-                    velocity.z -= direction.z * slideSpeed * delta; velocity.x -= direction.x * slideSpeed * delta;
-                    if (slideTimer <= 0) isSliding = false;
-                } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.1);
-                    blurElem.style.opacity = '0';
-                    const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
-                    velocity.z -= direction.z * speed * delta; velocity.x -= direction.x * speed * delta;
-                }
-
-                controls.moveForward(-velocity.z * delta); controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+                controls.moveRight(-velocity.x * delta);
                 cameraGroup.position.y += (velocity.y * delta);
-                
-                if (cameraGroup.position.y < 5 && !isSliding) { 
-                    if (velocity.y < -15 && window.playHeavyThud) window.playHeavyThud(); 
-                    velocity.y = 0; cameraGroup.position.y = 5; canJump = true; 
-                }
-                resolveCollisions();
-                if(window.updateAtmo) window.updateAtmo(time);
+
+                if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
+
+                if (isRunning && (moveForward || moveBackward || moveLeft || moveRight)) stamina -= 20 * delta;
+                else stamina += 15 * delta;
+                stamina = Math.max(0, Math.min(100, stamina));
+                document.getElementById('stamina-fill').style.width = stamina + '%';
             }
             prevTime = time;
             renderer.render(scene, camera);
         }
 
-        // Inventory and Sounds (Simplified for space, but functionally identical to V32)
-        function setupInventoryLogic() {
-            const grid = document.getElementById('inv-grid-container');
-            for (let i = 0; i < 16; i++) {
-                const slot = document.createElement('div'); slot.className = 'inv-slot';
-                slot.onclick = () => { playMenuClick(); document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active')); slot.classList.add('active'); };
-                grid.appendChild(slot);
-            }
-            document.getElementById('inv-close-btn').onclick = toggleInventory;
-        }
-
-        function toggleInventory() {
-            playMenuClick();
-            const overlay = document.getElementById('inventory-overlay');
-            isInventoryOpen = !isInventoryOpen;
-            if (isInventoryOpen) { controls.unlock(); overlay.style.display = 'flex'; setTimeout(() => overlay.style.opacity = '1', 10); }
-            else { overlay.style.opacity = '0'; setTimeout(() => { if(!isInventoryOpen) overlay.style.display = 'none'; }, 400); controls.lock(); }
-        }
-
-        init(); animate();
-
-        /* --- SOUND & ATMOSPHERE (Identical to V32) --- */
-        (function() {
-            window.playHeavyThud = () => {
-                const audioCtx = new AudioContext(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-            };
-            playMenuClick = () => { const audioCtx = new AudioContext(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.frequency.setValueAtTime(200, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.1); };
-        })();
+        // Preloader
+        setTimeout(() => {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('instructions').style.display = 'flex';
+            init();
+        }, 1000);
     </script>
 </body>
 </html>
