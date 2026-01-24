@@ -356,10 +356,10 @@
             
             controls = new PointerLockControls(cameraGroup, document.body);
             
-            // Interaction Listeners
+            // UI Interaction Listeners
             startBtn.addEventListener('mouseenter', () => playHoverSound());
             startBtn.addEventListener('mousedown', () => {
-                playMenuClick(); // Click Sound
+                playMenuClick();
                 controls.lock();
             });
             
@@ -370,7 +370,7 @@
             
             controls.addEventListener('unlock', () => {
                 if (!isInventoryOpen) {
-                    playMenuClick(); // Click Sound on pause
+                    playMenuClick(); 
                     title.classList.remove('animate-type');
                     title.innerText = "PAUSED";
                     inst.style.display = 'flex';
@@ -554,14 +554,13 @@
                     slot.appendChild(dot);
                 }
                 slot.onclick = () => {
-                    playMenuClick(); // Click Sound on item selection
+                    playMenuClick(); 
                     document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
                     slot.classList.add('active');
                     const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
                     document.getElementById('inv-item-name').innerText = data.name;
                     document.getElementById('inv-item-desc').innerText = data.desc;
                 };
-                // Adding hover sound to inventory slots as well
                 slot.addEventListener('mouseenter', () => playHoverSound());
                 grid.appendChild(slot);
             }
@@ -570,7 +569,7 @@
         }
 
         function toggleInventory() {
-            playMenuClick(); // Click Sound on entry/exit
+            playMenuClick();
             const overlay = document.getElementById('inventory-overlay');
             isInventoryOpen = !isInventoryOpen;
             if (isInventoryOpen) {
@@ -587,7 +586,7 @@
         init();
         animate();
 
-        /* --- SEPARATE AMBIENT WIND & ENVIRONMENT SYSTEM --- */
+        /* --- SOUND SYSTEMS --- */
         (function() {
             let districtWind, audioListener;
             let isPlaying = false;
@@ -596,40 +595,31 @@
             const setupEnvironment = () => {
                 audioListener = new THREE.AudioListener();
                 camera.add(audioListener);
-
                 districtWind = new THREE.Audio(audioListener);
                 const ctx = audioListener.context;
                 const bufferSize = 2 * ctx.sampleRate;
                 const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
-
                 for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-
                 districtWind.setBuffer(noiseBuffer);
                 districtWind.setLoop(true);
                 districtWind.setVolume(0);
-
                 const windFilter = ctx.createBiquadFilter();
-                windFilter.type = 'lowpass';
-                windFilter.frequency.value = 250; 
+                windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
                 districtWind.setFilter(windFilter);
             };
 
             const playBirdChirp = () => {
                 const ctx = audioListener.context;
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                const baseFreq = 2000 + Math.random() * 1000;
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                osc.type = 'sine'; const baseFreq = 2000 + Math.random() * 1000;
                 osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(baseFreq + 500, ctx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0, ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.05);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
             };
 
             setupEnvironment();
@@ -639,172 +629,72 @@
                 originalAnimate(); 
                 if (controls.isLocked) {
                     const ctx = audioListener.context;
-                    if (!isPlaying) {
-                        districtWind.play();
-                        isPlaying = true;
-                        nextBirdTime = ctx.currentTime + 5;
-                    }
+                    if (!isPlaying) { districtWind.play(); isPlaying = true; nextBirdTime = ctx.currentTime + 5; }
                     const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
                     const targetVol = 0.45 + Math.min(currentSpeed, 0.3); 
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), targetVol, 0.03));
-                    if (ctx.currentTime > nextBirdTime) {
-                        playBirdChirp();
-                        nextBirdTime = ctx.currentTime + (5 + Math.random() * 10);
-                    }
+                    if (ctx.currentTime > nextBirdTime) { playBirdChirp(); nextBirdTime = ctx.currentTime + (5 + Math.random() * 10); }
                 } else if (isPlaying) {
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
-                    if (districtWind.getVolume() < 0.01) {
-                        districtWind.pause();
-                        isPlaying = false;
-                    }
+                    if (districtWind.getVolume() < 0.01) { districtWind.pause(); isPlaying = false; }
                 }
             };
-        })();
 
-        /* --- SEPARATE HEAVY CERAMIC FOOTSTEP SYSTEM --- */
-        (function() {
+            // FOOTSTEPS
             let nextStepTime = 0;
-
             const playMetallicStep = (volume) => {
-                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
-                if (!listener) return;
-                const ctx = listener.context;
-
-                const osc = ctx.createOscillator();
-                const noise = ctx.createBufferSource();
-                const filter = ctx.createBiquadFilter();
-                const resonance = ctx.createBiquadFilter(); 
-                const gain = ctx.createGain();
-
-                const bufferSize = ctx.sampleRate * 0.1;
-                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+                const ctx = audioListener.context;
+                const osc = ctx.createOscillator(); const noise = ctx.createBufferSource();
+                const filter = ctx.createBiquadFilter(); const resonance = ctx.createBiquadFilter(); const gain = ctx.createGain();
+                const bufferSize = ctx.sampleRate * 0.1; const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 noise.buffer = buffer;
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(120, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.03);
-                
-                resonance.type = 'bandpass';
-                resonance.frequency.value = 450; 
-                resonance.Q.value = 15;          
-
-                filter.type = 'lowpass';
-                filter.frequency.value = 600;
-
-                gain.gain.setValueAtTime(0, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(volume * 1.2, ctx.currentTime + 0.005);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-
-                osc.connect(gain);
-                noise.connect(filter);
-                filter.connect(resonance);
-                resonance.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-                noise.start();
-                osc.stop(ctx.currentTime + 0.25);
-                noise.stop(ctx.currentTime + 0.25);
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(120, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.03);
+                resonance.type = 'bandpass'; resonance.frequency.value = 450; resonance.Q.value = 15;          
+                filter.type = 'lowpass'; filter.frequency.value = 600;
+                gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(volume * 1.2, ctx.currentTime + 0.005); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+                osc.connect(gain); noise.connect(filter); filter.connect(resonance); resonance.connect(gain); gain.connect(ctx.destination);
+                osc.start(); noise.start(); osc.stop(ctx.currentTime + 0.25); noise.stop(ctx.currentTime + 0.25);
             };
 
-            const originalAnimate = animate;
+            const originalAnimatePhysics = animate;
             animate = function() {
-                originalAnimate();
+                originalAnimatePhysics();
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                
                 if (controls.isLocked && canJump && isMoving && !isSliding) {
                     const time = performance.now();
-                    const actualRunning = isRunning && stamina > 0;
-                    const stepInterval = actualRunning ? 300 : 500; 
-
-                    if (time > nextStepTime) {
-                        playMetallicStep(actualRunning ? 1.2 : 0.7);
-                        nextStepTime = time + stepInterval;
-                    }
+                    const stepInterval = (isRunning && stamina > 0) ? 300 : 500; 
+                    if (time > nextStepTime) { playMetallicStep((isRunning && stamina > 0) ? 1.2 : 0.7); nextStepTime = time + stepInterval; }
                 }
             };
-        })();
 
-        /* --- MENU AUDIO SYSTEMS (CLICK & HOVER) --- */
-        (function() {
-            // SOFT GUMMY CLICK
+            // MENU CLICK (GUMMY)
             playMenuClick = () => {
-                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
-                if (!listener) return;
-                const ctx = listener.context;
-
-                const gummyOsc = ctx.createOscillator();
-                const gummyGain = ctx.createGain();
-                gummyOsc.type = 'sine';
-                gummyOsc.frequency.setValueAtTime(200, ctx.currentTime);
-                gummyOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
-                gummyGain.gain.setValueAtTime(0, ctx.currentTime);
-                gummyGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005);
-                gummyGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-
-                const clackOsc = ctx.createOscillator();
-                const clackGain = ctx.createGain();
-                clackOsc.type = 'sine';
-                clackOsc.frequency.setValueAtTime(3500, ctx.currentTime);
-                clackOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.015);
-                clackGain.gain.setValueAtTime(0, ctx.currentTime);
-                clackGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.002);
-                clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
-
-                gummyOsc.connect(gummyGain);
-                gummyGain.connect(ctx.destination);
-                clackOsc.connect(clackGain);
-                clackGain.connect(ctx.destination);
-
-                gummyOsc.start(); clackOsc.start();
-                gummyOsc.stop(ctx.currentTime + 0.12); clackOsc.stop(ctx.currentTime + 0.12);
+                const ctx = audioListener.context;
+                const gummyOsc = ctx.createOscillator(); const gummyGain = ctx.createGain();
+                gummyOsc.type = 'sine'; gummyOsc.frequency.setValueAtTime(200, ctx.currentTime); gummyOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.06);
+                gummyGain.gain.setValueAtTime(0, ctx.currentTime); gummyGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.005); gummyGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                const clackOsc = ctx.createOscillator(); const clackGain = ctx.createGain();
+                clackOsc.type = 'sine'; clackOsc.frequency.setValueAtTime(3500, ctx.currentTime); clackOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.015);
+                clackGain.gain.setValueAtTime(0, ctx.currentTime); clackGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.002); clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+                gummyOsc.connect(gummyGain); gummyGain.connect(ctx.destination);
+                clackOsc.connect(clackGain); clackGain.connect(ctx.destination);
+                gummyOsc.start(); clackOsc.start(); gummyOsc.stop(ctx.currentTime + 0.12); clackOsc.stop(ctx.currentTime + 0.12);
             };
 
             // WOODY CLACKY HOVER
             playHoverSound = () => {
-                const listener = camera.children.find(c => c instanceof THREE.AudioListener);
-                if (!listener || !listener.context) return;
-                const ctx = listener.context;
-
-                // 1. THE WOODY RESONANCE (Triangle + Bandpass)
-                const woodOsc = ctx.createOscillator();
-                const woodGain = ctx.createGain();
-                const woodFilter = ctx.createBiquadFilter();
-
-                woodOsc.type = 'triangle';
-                woodOsc.frequency.setValueAtTime(600, ctx.currentTime);
-                woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
-
-                woodFilter.type = 'bandpass';
-                woodFilter.frequency.value = 1200;
-                woodFilter.Q.value = 5;
-
-                woodGain.gain.setValueAtTime(0, ctx.currentTime);
-                woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005);
-                woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-
-                // 2. THE MECHANICAL CLACK (High Sine)
-                const clackOsc = ctx.createOscillator();
-                const clackGain = ctx.createGain();
-
-                clackOsc.type = 'sine';
-                clackOsc.frequency.setValueAtTime(2200, ctx.currentTime);
-                
-                clackGain.gain.setValueAtTime(0, ctx.currentTime);
-                clackGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.002);
-                clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
-
-                woodOsc.connect(woodFilter);
-                woodFilter.connect(woodGain);
-                woodGain.connect(ctx.destination);
-                
-                clackOsc.connect(clackGain);
-                clackGain.connect(ctx.destination);
-
-                woodOsc.start(); clackOsc.start();
-                woodOsc.stop(ctx.currentTime + 0.07); clackOsc.stop(ctx.currentTime + 0.07);
+                const ctx = audioListener.context;
+                const woodOsc = ctx.createOscillator(); const woodGain = ctx.createGain(); const woodFilter = ctx.createBiquadFilter();
+                woodOsc.type = 'triangle'; woodOsc.frequency.setValueAtTime(600, ctx.currentTime); woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
+                woodFilter.type = 'bandpass'; woodFilter.frequency.value = 1200; woodFilter.Q.value = 5;
+                woodGain.gain.setValueAtTime(0, ctx.currentTime); woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005); woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+                const clackOsc = ctx.createOscillator(); const clackGain = ctx.createGain();
+                clackOsc.type = 'sine'; clackOsc.frequency.setValueAtTime(2200, ctx.currentTime);
+                clackGain.gain.setValueAtTime(0, ctx.currentTime); clackGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.002); clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
+                woodOsc.connect(woodFilter); woodFilter.connect(woodGain); woodGain.connect(ctx.destination);
+                clackOsc.connect(clackGain); clackGain.connect(ctx.destination);
+                woodOsc.start(); clackOsc.start(); woodOsc.stop(ctx.currentTime + 0.07); clackOsc.stop(ctx.currentTime + 0.07);
             };
         })();
     </script>
