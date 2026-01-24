@@ -3,53 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - Condensed Baseline</title>
+    <title>Geometric Range - Fixed Condensed Baseline</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', monospace; background: #eee; }
         canvas { display: block; }
+        
+        /* --- LOADING SCREEN --- */
         #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s; }
-        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; }
-        .dot { display: inline-block; animation: oscillate 1.4s infinite; }
+        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
+        
+        /* FIXED DOT OSCILLATION */
+        .dot { display: inline-block; animation: oscillate 1.4s ease-in-out infinite; }
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes oscillate { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; } }
+        
         .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
-        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; }
+        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
+
+        /* --- MENU UI --- */
         #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); z-index: 20; transition: opacity 0.4s; }
-        .title-init { font-size: 3rem; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; border-right: 4px solid #ff4b2b; white-space: nowrap; overflow: hidden; }
-        .animate-type { animation: typing 2.2s steps(15, end) forwards; width: 0; }
+        .title-init { font-size: 3rem; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; border-right: 4px solid #ff4b2b; white-space: nowrap; overflow: hidden; width: 0; }
+        .animate-type { animation: typing 2.2s steps(15, end) forwards; }
         @keyframes typing { from { width: 0 } to { width: 100% } }
+        
         #instructions p { font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: 0.5s; }
         .show-p { opacity: 1 !important; }
-        .start-prompt { margin-top: 40px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; letter-spacing: 5px; }
+        
+        /* FIXED START BUTTON CLICKABLE AREA */
+        .start-prompt { margin-top: 40px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; letter-spacing: 5px; padding: 20px; z-index: 25; pointer-events: auto; }
+        .start-prompt:hover { background: rgba(255, 75, 43, 0.1); }
+
         #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
-        #blur-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; opacity: 0; transition: 0.1s; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #fff; border-radius: 50%; mix-blend-mode: difference; z-index: 10; }
-        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none; }
         .stat-wrapper { background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
         .bar-container { width: 200px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
         .bar-fill { width: 100%; height: 100%; transition: width 0.3s; }
-        #cd-fill { background: #ffea00; }
-        #health-fill { background: #ff416c; }
         #stamina-fill { background: #6dd5ed; }
-        .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: 0.4s; }
-        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0,0,0,0.7); padding: 40px; border-radius: 12px; color: white; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .inv-slot.active { border: 2px solid #ff4b2b; }
-        .item-dot { width: 14px; height: 14px; border-radius: 50%; }
     </style>
     <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }</script>
 </head>
 <body>
-    <div id="loading-screen"><div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div><div class="loader-container"><div id="loader-fill"></div></div></div>
-    <div id="vignette"></div><div id="blur-overlay"></div><div id="crosshair"></div>
-    <div id="instructions"><div class="title-container"><h1 id="menu-title" class="title-init">MEGA DISTRICT</h1></div><div id="menu-content"><p>WASD — MOVE</p><p>SHIFT — SPRINT</p><p>CTRL — SLIDE (1s)</p><p>SPACE — JUMP (HEAVY)</p><p>TAB — INVENTORY</p><p class="start-prompt" id="start-btn">CLICK TO BEGIN</p></div></div>
-    <div id="hud-container">
-        <div class="stat-wrapper"><div class="stat-label"><span>Maneuver</span></div><div class="bar-container"><div id="cd-fill" class="bar-fill"></div></div></div>
-        <div class="stat-wrapper"><div class="stat-label"><span>Health</span><span id="health-val">100</span></div><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
-        <div class="stat-wrapper"><div class="stat-label"><span>Stamina</span><span id="stamina-val">100</span></div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
+    <div id="loading-screen">
+        <div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+        <div class="loader-container"><div id="loader-fill"></div></div>
     </div>
-    <div id="inventory-overlay"><div class="inventory-window"><div id="inv-grid-container" class="inv-grid"></div><div class="inv-right"><h2 id="inv-item-name">EMPTY</h2><p id="inv-item-desc">Select node.</p><button id="inv-close-btn">CLOSE</button></div></div></div>
+
+    <div id="vignette"></div>
+    <div id="instructions">
+        <h1 id="menu-title" class="title-init">MEGA DISTRICT</h1>
+        <p>WASD — MOVE</p>
+        <p>SHIFT — SPRINT</p>
+        <p>SPACE — JUMP</p>
+        <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
+    </div>
+
+    <div id="hud-container">
+        <div class="stat-wrapper">
+            <div style="color:white; font-size:9px; font-weight:bold; letter-spacing:1px;">STAMINA</div>
+            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
+        </div>
+    </div>
 
     <script type="module">
         import * as THREE from 'three';
@@ -58,34 +73,41 @@
         let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3(), prevTime = performance.now();
-        let health = 100, stamina = 100, isSliding = false, slideTimer = 0, slideCooldown = 0, isInventoryOpen = false;
+        let stamina = 100;
         const collidableBoxes = [], playerSize = 0.7;
-
-        function createTexture(w, h, color, dots) {
-            const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-            const ctx = canvas.getContext('2d'); ctx.fillStyle = color; ctx.fillRect(0,0,w,h);
-            for(let i=0; i<dots; i++) { ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.1})`; ctx.fillRect(Math.random()*w, Math.random()*h, 1, 1); }
-            return new THREE.CanvasTexture(canvas);
-        }
 
         function init() {
             scene = new THREE.Scene(); scene.background = new THREE.Color(0xdddddd);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
             cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
             scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5));
-            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true }); 
+            renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
             controls = new PointerLockControls(cameraGroup, document.body);
-            document.getElementById('start-btn').onclick = () => controls.lock();
+            
+            // FIXED START BUTTON LISTENER
+            const startBtn = document.getElementById('start-btn');
+            startBtn.addEventListener('click', () => {
+                controls.lock();
+            });
 
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshPhongMaterial({ map: createTexture(512,512,'#999',30000) }));
+            controls.addEventListener('lock', () => {
+                document.getElementById('instructions').style.opacity = '0';
+                setTimeout(() => document.getElementById('instructions').style.display = 'none', 400);
+            });
+
+            // Basic Floor
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
             floor.rotation.x = -Math.PI/2; scene.add(floor);
 
-            for (let i = 0; i < 70; i++) {
-                const h = 10 + Math.random() * 20, w = 8 + Math.random() * 8;
-                const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), new THREE.MeshPhongMaterial({ color: 0xffffff }));
-                b.position.set(Math.random()*150-75, h/2, Math.random()*150-75);
+            // Buildings
+            for (let i = 0; i < 50; i++) {
+                const h = 10 + Math.random() * 20;
+                const b = new THREE.Mesh(new THREE.BoxGeometry(10, h, 10), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                b.position.set(Math.random()*160-80, h/2, Math.random()*160-80);
                 scene.add(b); collidableBoxes.push(new THREE.Box3().setFromObject(b));
             }
 
@@ -94,8 +116,6 @@
                 if(e.code==='KeyA') moveLeft=true; if(e.code==='KeyD') moveRight=true;
                 if(e.code==='ShiftLeft') isRunning=true;
                 if(e.code==='Space' && canJump) { velocity.y += 22; canJump = false; }
-                if(e.code==='ControlLeft' && canJump && !isSliding && slideCooldown <= 0) { isSliding = true; slideTimer = 1.0; slideCooldown = 5.0; }
-                if(e.code==='Tab') { e.preventDefault(); toggleInventory(); }
             });
             document.addEventListener('keyup', e => {
                 if(e.code==='KeyW') moveForward=false; if(e.code==='KeyS') moveBackward=false;
@@ -108,59 +128,50 @@
             startLoading();
         }
 
-        function resolveCollisions() {
-            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-            collidableBoxes.forEach(box => {
-                if (playerBox.intersectsBox(box)) {
-                    const ox = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
-                    const oz = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
-                    if (ox < oz) cameraGroup.position.x += ox * (cameraGroup.position.x > (box.min.x + box.max.x)/2 ? 1 : -1);
-                    else cameraGroup.position.z += oz * (cameraGroup.position.z > (box.min.z + box.max.z)/2 ? 1 : -1);
-                }
-            });
-        }
-
         function animate() {
             requestAnimationFrame(animate);
             const delta = (performance.now() - prevTime) / 1000;
             if (controls.isLocked) {
-                velocity.x -= velocity.x * 12 * delta; velocity.z -= velocity.z * 12 * delta; velocity.y -= 9.8 * 5 * delta;
+                velocity.x -= velocity.x * 12 * delta; velocity.z -= velocity.z * 12 * delta; velocity.y -= 49 * delta; // Heavy Gravity
                 direction.z = Number(moveForward) - Number(moveBackward); direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                stamina = isRunning && (moveForward||moveLeft) ? Math.max(0, stamina - 15*delta) : Math.min(100, stamina + 30*delta);
+                stamina = (isRunning && (moveForward||moveLeft)) ? Math.max(0, stamina - 15*delta) : Math.min(100, stamina + 30*delta);
                 document.getElementById('stamina-fill').style.width = stamina + '%';
 
-                if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta; cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3, 0.1);
-                    velocity.z -= direction.z * 400 * delta; velocity.x -= direction.x * 400 * delta;
-                    if (slideTimer <= 0) isSliding = false;
-                } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5, 0.1);
-                    const s = (isRunning && stamina > 0) ? 220 : 130;
-                    velocity.z -= direction.z * s * delta; velocity.x -= direction.x * s * delta;
-                }
+                const s = (isRunning && stamina > 0) ? 220 : 130;
+                velocity.z -= direction.z * s * delta; velocity.x -= direction.x * s * delta;
                 
                 controls.moveForward(-velocity.z * delta); controls.moveRight(-velocity.x * delta);
                 cameraGroup.position.y += velocity.y * delta;
                 if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
-                resolveCollisions();
             }
             prevTime = performance.now();
             renderer.render(scene, camera);
         }
 
-        function toggleInventory() {
-            const overlay = document.getElementById('inventory-overlay');
-            isInventoryOpen = !isInventoryOpen;
-            overlay.style.display = isInventoryOpen ? 'flex' : 'none';
-            overlay.style.opacity = isInventoryOpen ? '1' : '0';
-            if(isInventoryOpen) controls.unlock(); else controls.lock();
-        }
-
         function startLoading() {
             let p = 0; const f = document.getElementById('loader-fill');
-            const int = setInterval(() => { p += 2; f.style.width = p+'%'; if(p>=100) { clearInterval(int); document.getElementById('loading-screen').style.opacity=0; document.getElementById('instructions').style.display='flex'; setTimeout(()=>document.getElementById('instructions').style.opacity=1,100); document.querySelectorAll('#instructions p').forEach(el=>el.classList.add('show-p')); } }, 30);
+            const int = setInterval(() => { 
+                p += Math.random() * 5; 
+                if(p > 100) p = 100;
+                f.style.width = p+'%'; 
+                if(p>=100) { 
+                    clearInterval(int); 
+                    document.getElementById('loading-screen').style.opacity=0; 
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').style.display='none';
+                        document.getElementById('instructions').style.display='flex';
+                        setTimeout(() => {
+                            document.getElementById('instructions').style.opacity=1;
+                            document.getElementById('menu-title').classList.add('animate-type');
+                            setTimeout(() => {
+                                document.querySelectorAll('#instructions p').forEach(el=>el.classList.add('show-p'));
+                            }, 1000);
+                        }, 100);
+                    }, 800);
+                } 
+            }, 50);
         }
 
         init();
