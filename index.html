@@ -588,25 +588,80 @@
 
         /* --- SOUND SYSTEMS --- */
         (function() {
-            let districtWind, audioListener;
+            let districtWind, audioListener, slideSound;
             let isPlaying = false;
             let nextBirdTime = 0;
+            let wasInAir = false; // Track state for landing detection
 
             const setupEnvironment = () => {
                 audioListener = new THREE.AudioListener();
                 camera.add(audioListener);
                 districtWind = new THREE.Audio(audioListener);
+                slideSound = new THREE.Audio(audioListener); // Separate source for friction
+                
                 const ctx = audioListener.context;
                 const bufferSize = 2 * ctx.sampleRate;
                 const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                
                 districtWind.setBuffer(noiseBuffer);
                 districtWind.setLoop(true);
                 districtWind.setVolume(0);
+                
                 const windFilter = ctx.createBiquadFilter();
                 windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
                 districtWind.setFilter(windFilter);
+
+                // Setup Slide Sound (High-frequency grit)
+                slideSound.setBuffer(noiseBuffer);
+                slideSound.setLoop(true);
+                slideSound.setVolume(0);
+                const slideFilter = ctx.createBiquadFilter();
+                slideFilter.type = 'lowpass';
+                slideFilter.frequency.value = 800;
+                slideSound.setFilter(slideFilter);
+            };
+
+            const playLandingSound = (impactVelocity) => {
+                const ctx = audioListener.context;
+                const osc = ctx.createOscillator();
+                const noise = ctx.createBufferSource();
+                const gain = ctx.createGain();
+                const filter = ctx.createBiquadFilter();
+
+                // Volume Scaling based on impact velocity (Threshold 10, Cap at 3x original)
+                const impactForce = Math.abs(impactVelocity);
+                let volumeMultiplier = Math.max(1, impactForce / 10);
+                volumeMultiplier = Math.min(volumeMultiplier, 3.0);
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(80, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.15);
+
+                const bufferSize = ctx.sampleRate * 0.15;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                noise.buffer = buffer;
+
+                filter.type = 'lowpass';
+                filter.frequency.value = 400;
+
+                const baseGain = 0.5;
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(baseGain * volumeMultiplier, ctx.currentTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+
+                osc.connect(gain);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                noise.start();
+                osc.stop(ctx.currentTime + 0.2);
+                noise.stop(ctx.currentTime + 0.2);
             };
 
             const playBirdChirp = () => {
@@ -629,18 +684,40 @@
                 originalAnimate(); 
                 if (controls.isLocked) {
                     const ctx = audioListener.context;
-                    if (!isPlaying) { districtWind.play(); isPlaying = true; nextBirdTime = ctx.currentTime + 5; }
+                    if (!isPlaying) { 
+                        districtWind.play(); 
+                        slideSound.play();
+                        isPlaying = true; 
+                        nextBirdTime = ctx.currentTime + 5; 
+                    }
+                    
                     const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
-                    const targetVol = 0.45 + Math.min(currentSpeed, 0.3); 
-                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), targetVol, 0.03));
-                    if (ctx.currentTime > nextBirdTime) { playBirdChirp(); nextBirdTime = ctx.currentTime + (5 + Math.random() * 10); }
+                    const targetWindVol = 0.45 + Math.min(currentSpeed, 0.3); 
+                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), targetWindVol, 0.03));
+                    
+                    // Slide Sound Modulation
+                    const targetSlideVol = isSliding ? 0.6 : 0;
+                    slideSound.setVolume(THREE.MathUtils.lerp(slideSound.getVolume(), targetSlideVol, 0.1));
+                    slideSound.getFilter().frequency.value = THREE.MathUtils.lerp(slideSound.getFilter().frequency.value, isSliding ? 1200 : 800, 0.1);
+
+                    // Landing Detection using Vertical Height and Velocity
+                    const inAir = cameraGroup.position.y > 5.01; 
+                    if (wasInAir && !inAir) {
+                        playLandingSound(velocity.y);
+                    }
+                    wasInAir = inAir;
+
+                    if (ctx.currentTime > nextBirdTime) { 
+                        playBirdChirp(); 
+                        nextBirdTime = ctx.currentTime + (5 + Math.random() * 10); 
+                    }
                 } else if (isPlaying) {
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
+                    slideSound.setVolume(0);
                     if (districtWind.getVolume() < 0.01) { districtWind.pause(); isPlaying = false; }
                 }
             };
 
-            // FOOTSTEPS
             let nextStepTime = 0;
             const playMetallicStep = (volume) => {
                 const ctx = audioListener.context;
@@ -661,6 +738,7 @@
             animate = function() {
                 originalAnimatePhysics();
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                // Steps are disabled while sliding to avoid sound clashing
                 if (controls.isLocked && canJump && isMoving && !isSliding) {
                     const time = performance.now();
                     const stepInterval = (isRunning && stamina > 0) ? 300 : 500; 
@@ -668,7 +746,6 @@
                 }
             };
 
-            // MENU CLICK (GUMMY)
             playMenuClick = () => {
                 const ctx = audioListener.context;
                 const gummyOsc = ctx.createOscillator(); const gummyGain = ctx.createGain();
@@ -682,7 +759,6 @@
                 gummyOsc.start(); clackOsc.start(); gummyOsc.stop(ctx.currentTime + 0.12); clackOsc.stop(ctx.currentTime + 0.12);
             };
 
-            // WOODY CLACKY HOVER
             playHoverSound = () => {
                 const ctx = audioListener.context;
                 const woodOsc = ctx.createOscillator(); const woodGain = ctx.createGain(); const woodFilter = ctx.createBiquadFilter();
