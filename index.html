@@ -109,6 +109,7 @@
         .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
         .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
         
+        /* --- COOLDOWN BAR STYLING --- */
         #cd-wrapper { padding: 4px 15px; border-radius: 6px; margin-bottom: -4px; }
         #cd-bar-container { height: 3px; margin-top: 0; }
         #cd-fill { background: #ffea00; box-shadow: 0 0 5px rgba(255, 234, 0, 0.5); }
@@ -153,7 +154,7 @@
             <p>WASD — MOVE</p>
             <p>SHIFT — SPRINT</p>
             <p>CTRL — SLIDE (1s)</p>
-            <p>SPACE — JUMP (HEAVY IMPACT)</p>
+            <p>SPACE — JUMP (2.2x HEIGHT)</p>
             <p>TAB — INVENTORY</p>
             <p>F — TOGGLE FULLSCREEN</p>
             <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
@@ -175,6 +176,22 @@
         </div>
     </div>
 
+    <div id="inventory-overlay">
+        <div class="inventory-window">
+            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
+            <div style="flex: 1.2; display: flex; flex-direction: column;">
+                <div class="inv-header">Cargo</div>
+                <div class="inv-grid" id="inv-grid-container"></div>
+            </div>
+            <div class="inv-right">
+                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
+                <div id="inv-item-name">NO_SELECTION</div>
+                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
+                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
@@ -183,27 +200,38 @@
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
-        let stamina = 100;
+        let bobTimer = 0;
+        let health = 100, stamina = 100;
+        let leftUpper, rightUpper, leftFore, rightFore;
         const collidableBoxes = []; 
+        const playerSize = 0.7;
+        let isInventoryOpen = false;
 
-        /* --- MANEUVER PARAMS --- */
+        // Global sound function placeholders
+        let playMenuClick = () => {};
+        let playHoverSound = () => {};
+        let initSpecialAudio = () => {}; // Special sounds engine
+
+        /* --- SLIDE SYSTEM --- */
         let isSliding = false;
         let slideTimer = 0;
         let slideCooldown = 0;
-        const slideMaxDuration = 1.0; 
-        const slideMaxCooldown = 3.0; 
-        const slideSpeedMultiplier = 3.8;
+        const slideMaxDuration = 1.0; // UPDATED: 1s
+        const slideMaxCooldown = 4.0; 
+        const slideSpeedMultiplier = 3.6;
+        const baseFOV = 75;
+        const warpFOV = 92;
         const blurElem = document.getElementById('blur-overlay');
         const cdFill = document.getElementById('cd-fill');
-
-        /* --- AUDIO GLOBALS --- */
-        let audioCtx, slideNoise, slideGain, initialized = false;
 
         function startLoading() {
             const fill = document.getElementById('loader-fill');
             const screen = document.getElementById('loading-screen');
             const menu = document.getElementById('instructions');
+            const title = document.getElementById('menu-title');
+            const paragraphs = document.querySelectorAll('#menu-content p');
             let progress = 0;
+
             const interval = setInterval(() => {
                 progress += Math.random() * 5;
                 if (progress >= 100) {
@@ -213,6 +241,15 @@
                     setTimeout(() => {
                         menu.style.opacity = '1';
                         screen.style.opacity = '0';
+                        title.classList.add('animate-type');
+                        setTimeout(() => {
+                            paragraphs.forEach((p, i) => {
+                                setTimeout(() => {
+                                    p.classList.add('show-p');
+                                    if(p.id === 'start-btn') p.classList.add('ready-pulse');
+                                }, i * 120);
+                            });
+                        }, 2200);
                         setTimeout(() => screen.style.display = 'none', 800);
                     }, 400);
                 }
@@ -220,50 +257,74 @@
             }, 40);
         }
 
-        function initAudio() {
-            if (initialized) {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                return;
+        function createStonyTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#999999';
+            context.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 30000; i++) {
+                const x = Math.random() * 512; const y = Math.random() * 512;
+                const shade = Math.floor(Math.random() * 20) + 140; 
+                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`;
+                context.fillRect(x, y, 1, 1);
             }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Sandpaper Noise Generation
-            const bufferSize = audioCtx.sampleRate * 2;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-            slideNoise = audioCtx.createBufferSource();
-            slideNoise.buffer = buffer;
-            slideNoise.loop = true;
-
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.value = 1800; // The "Grit"
-            filter.Q.value = 1.5;
-
-            slideGain = audioCtx.createGain();
-            slideGain.gain.value = 0;
-
-            slideNoise.connect(filter);
-            filter.connect(slideGain);
-            slideGain.connect(audioCtx.destination);
-            slideNoise.start();
-
-            initialized = true;
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(18, 18);
+            return texture;
         }
 
-        function playHeavyThud() {
-            if (!initialized) return;
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.2);
-            g.gain.setValueAtTime(0.8, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        function createLightTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#f7f7f7';
+            context.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 15000; i++) {
+                const x = Math.random() * 256; const y = Math.random() * 256;
+                const opacity = Math.random() * 0.05;
+                context.fillStyle = `rgba(0,0,0,${opacity})`;
+                context.fillRect(x, y, 1, 1);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        function createBuilding(x, z) {
+            const w = 12 + Math.random() * 8;
+            const h = 10 + Math.random() * 15;
+            const d = 12 + Math.random() * 8;
+            const baseGeo = new THREE.BoxGeometry(w, h, d);
+            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.set(x, h/2, z);
+            scene.add(base);
+            collidableBoxes.push(new THREE.Box3().setFromObject(base));
+            const roofGeo = new THREE.BoxGeometry(w + 1, 1, d + 1);
+            const roofMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.set(x, h + 0.5, z);
+            scene.add(roof);
+        }
+
+        function resolveCollisions() {
+            const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
+            for (let box of collidableBoxes) {
+                if (playerBox.intersectsBox(box)) {
+                    const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
+                    const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
+                    if (overlapX < overlapZ) {
+                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
+                        velocity.x = 0;
+                    } else {
+                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
+                        velocity.z = 0;
+                    }
+                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
+                }
+            }
         }
 
         function init() {
@@ -276,17 +337,339 @@
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            sunLight.position.set(5, 10, 7.5);
+            scene.add(sunLight);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            controls = new PointerLockControls(cameraGroup, document.body);
-            document.getElementById('start-btn').addEventListener('click', () => {
-                initAudio();
-                controls.lock();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            // Floor
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshPhongMaterial({ color: 0x999999 }));
-            floor.
+            const inst = document.getElementById('instructions');
+            const title = document.getElementById('menu-title');
+            const startBtn = document.getElementById('start-btn');
+            
+            controls = new PointerLockControls(cameraGroup, document.body);
+            
+            startBtn.addEventListener('mouseenter', () => playHoverSound());
+            startBtn.addEventListener('mousedown', () => {
+                playMenuClick();
+                initSpecialAudio(); // Start Sand/Thud engine
+                controls.lock();
+            });
+            
+            controls.addEventListener('lock', () => {
+                inst.style.opacity = '0';
+                setTimeout(() => { if(controls.isLocked) inst.style.display = 'none'; }, 400);
+            });
+            
+            controls.addEventListener('unlock', () => {
+                if (!isInventoryOpen) {
+                    playMenuClick(); 
+                    title.classList.remove('animate-type');
+                    title.innerText = "PAUSED";
+                    inst.style.display = 'flex';
+                    setTimeout(() => inst.style.opacity = '1', 10);
+                }
+            });
+
+            const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
+            const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
+            const foreGeo = new THREE.CapsuleGeometry(0.1, 0.5, 4, 8);
+            leftUpper = new THREE.Mesh(upperGeo, limbMat);
+            leftFore = new THREE.Mesh(foreGeo, limbMat);
+            leftFore.position.set(0, -0.1, -0.35); 
+            leftUpper.add(leftFore);
+            leftUpper.position.set(-0.6, -1.0, 0.2); 
+            camera.add(leftUpper);
+            rightUpper = new THREE.Mesh(upperGeo, limbMat);
+            rightFore = new THREE.Mesh(foreGeo, limbMat);
+            rightFore.position.set(0, -0.1, -0.35);
+            rightUpper.add(rightFore);
+            rightUpper.position.set(0.6, -1.0, 0.2); 
+            camera.add(rightUpper);
+
+            const arena = 180;
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
+            wallData.forEach(d => {
+                const w = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
+                w.position.set(d.x, d.h/2, d.z);
+                scene.add(w);
+                collidableBoxes.push(new THREE.Box3().setFromObject(w));
+            });
+
+            for (let i = 0; i < 70; i++) {
+                let rx = Math.random() * 150 - 75;
+                let rz = Math.random() * 150 - 75;
+                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
+                if (i % 3 === 0) createBuilding(rx, rz);
+                else {
+                    const h = Math.random() * 20 + 5;
+                    const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
+                    p.position.set(rx, h/2, rz);
+                    scene.add(p);
+                    collidableBoxes.push(new THREE.Box3().setFromObject(p));
+                }
+            }
+
+            cameraGroup.position.set(0, 5, 0);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyW') moveForward = true;
+                if (e.code === 'KeyS') moveBackward = true;
+                if (e.code === 'KeyA') moveLeft = true;
+                if (e.code === 'KeyD') moveRight = true;
+                if (e.code === 'ShiftLeft') isRunning = true;
+                if (e.code === 'Space' && canJump) { velocity.y += 22; canJump = false; } // 2.2x Jump
+                if (e.code === 'KeyF') {
+                    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                    else document.exitFullscreen();
+                }
+                if (e.code === 'Tab') { e.preventDefault(); toggleInventory(); }
+                
+                if (e.code === 'ControlLeft' && canJump && !isSliding && slideCooldown <= 0) {
+                    const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                    if (isMoving) {
+                        isSliding = true;
+                        slideTimer = slideMaxDuration;
+                        slideCooldown = slideMaxCooldown; 
+                        blurElem.style.opacity = '1';
+                    }
+                }
+            });
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'KeyW') moveForward = false;
+                if (e.code === 'KeyS') moveBackward = false;
+                if (e.code === 'KeyA') moveLeft = false;
+                if (e.code === 'KeyD') moveRight = false;
+                if (e.code === 'ShiftLeft') isRunning = false;
+                if (e.code === 'ControlLeft') isSliding = false;
+            });
+
+            setupInventoryLogic();
+            startLoading();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            if (controls.isLocked) {
+                velocity.x -= velocity.x * 12.0 * delta;
+                velocity.z -= velocity.z * 12.0 * delta;
+                velocity.y -= 9.8 * 5.0 * delta; // HEAVY PHYSICS
+                
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                
+                if (isRunning && isMoving && stamina > 0) {
+                    stamina = Math.max(0, stamina - 15 * delta);
+                } else {
+                    stamina = Math.min(100, stamina + 30 * delta);
+                }
+                document.getElementById('stamina-fill').style.width = stamina + '%';
+                document.getElementById('stamina-val').textContent = `${Math.round(stamina)} / 100`;
+
+                if (slideCooldown > 0) slideCooldown -= delta;
+                cdFill.style.width = (100 - ((Math.max(0, slideCooldown) / slideMaxCooldown) * 100)) + '%';
+
+                if (isSliding && slideTimer > 0) {
+                    slideTimer -= delta;
+                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.2, 0.15);
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, warpFOV, 0.05);
+                    camera.updateProjectionMatrix();
+                    
+                    const slideSpeed = 420.0;
+                    if (moveForward || moveBackward) velocity.z -= direction.z * slideSpeed * delta;
+                    if (moveLeft || moveRight) velocity.x -= direction.x * slideSpeed * delta;
+                    
+                    if (slideTimer <= 0) { isSliding = false; blurElem.style.opacity = '0'; }
+                } else {
+                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.1);
+                    camera.updateProjectionMatrix();
+                    blurElem.style.opacity = '0';
+                    const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
+                    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+                }
+
+                controls.moveForward(-velocity.z * delta);
+                controls.moveRight(-velocity.x * delta);
+                cameraGroup.position.y += (velocity.y * delta);
+                
+                if (cameraGroup.position.y < 5) { 
+                    if (velocity.y < -18 && window.triggerThud) window.triggerThud(); 
+                    velocity.y = 0; cameraGroup.position.y = 5; canJump = true; 
+                }
+
+                resolveCollisions();
+
+                if (canJump && isMoving && !isSliding) {
+                    const actualRunning = isRunning && stamina > 0;
+                    bobTimer += delta * (actualRunning ? 14 : 8);
+                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
+                    leftUpper.rotation.x = Math.sin(bobTimer) * 0.2;
+                    rightUpper.rotation.x = Math.cos(bobTimer) * 0.2;
+                } else if (!isSliding) {
+                    leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
+                }
+            }
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        function setupInventoryLogic() {
+            const grid = document.getElementById('inv-grid-container');
+            const items = [{ name: "Suture Kit", desc: "Medical nanites for structural repair.", color: "#ff416c" }, { name: "Stim-Shot", desc: "Instant stamina recharge.", color: "#6dd5ed" }, { name: "Key-Card", desc: "District level 4 access.", color: "#ffffff" }];
+            for (let i = 0; i < 16; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inv-slot';
+                if (items[i]) {
+                    const dot = document.createElement('div');
+                    dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color;
+                    slot.appendChild(dot);
+                }
+                slot.onclick = () => {
+                    playMenuClick(); 
+                    document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
+                    slot.classList.add('active');
+                    const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
+                    document.getElementById('inv-item-name').innerText = data.name;
+                    document.getElementById('inv-item-desc').innerText = data.desc;
+                };
+                slot.addEventListener('mouseenter', () => playHoverSound());
+                grid.appendChild(slot);
+            }
+            document.getElementById('inv-close-btn').onclick = toggleInventory;
+        }
+
+        function toggleInventory() {
+            playMenuClick();
+            const overlay = document.getElementById('inventory-overlay');
+            isInventoryOpen = !isInventoryOpen;
+            if (isInventoryOpen) {
+                controls.unlock();
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            } else {
+                overlay.style.opacity = '0';
+                setTimeout(() => { if(!isInventoryOpen) overlay.style.display = 'none'; }, 400);
+                controls.lock();
+            }
+        }
+
+        /* --- BASELINE SOUND ENGINE --- */
+        (function() {
+            let districtWind, audioListener, isPlaying = false;
+            const setupEnvironment = () => {
+                audioListener = new THREE.AudioListener();
+                camera.add(audioListener);
+                districtWind = new THREE.Audio(audioListener);
+                const ctx = audioListener.context;
+                const bufferSize = 2 * ctx.sampleRate;
+                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                districtWind.setBuffer(noiseBuffer);
+                districtWind.setLoop(true);
+                districtWind.setVolume(0);
+                const windFilter = ctx.createBiquadFilter();
+                windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
+                districtWind.setFilter(windFilter);
+            };
+
+            const originalAnimate = animate;
+            animate = function() {
+                originalAnimate(); 
+                if (controls.isLocked) {
+                    if (!isPlaying) { districtWind.play(); isPlaying = true; }
+                    const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
+                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0.45 + Math.min(currentSpeed, 0.3), 0.03));
+                } else if (isPlaying) {
+                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
+                    if (districtWind.getVolume() < 0.01) { districtWind.pause(); isPlaying = false; }
+                }
+            };
+
+            playMenuClick = () => {
+                const ctx = audioListener.context;
+                const gOsc = ctx.createOscillator(); const gGain = ctx.createGain();
+                gOsc.type = 'sine'; gOsc.frequency.setValueAtTime(200, ctx.currentTime);
+                gGain.gain.setValueAtTime(0.4, ctx.currentTime); gGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                gOsc.connect(gGain); gGain.connect(ctx.destination);
+                gOsc.start(); gOsc.stop(ctx.currentTime + 0.12);
+            };
+
+            playHoverSound = () => {
+                const ctx = audioListener.context;
+                const wOsc = ctx.createOscillator(); const wGain = ctx.createGain();
+                wOsc.type = 'triangle'; wOsc.frequency.setValueAtTime(600, ctx.currentTime);
+                wGain.gain.setValueAtTime(0.08, ctx.currentTime); wGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+                wOsc.connect(wGain); wGain.connect(ctx.destination);
+                wOsc.start(); wOsc.stop(ctx.currentTime + 0.07);
+            };
+
+            setupEnvironment();
+        })();
+
+        /* --- NEW SAND/THUD ENGINE --- */
+        (function() {
+            let specialCtx, slideNoise, slideGain;
+            initSpecialAudio = () => {
+                if (specialCtx) return;
+                specialCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Sandpaper Loop
+                const bSize = specialCtx.sampleRate * 2;
+                const buffer = specialCtx.createBuffer(1, bSize, specialCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bSize; i++) data[i] = Math.random() * 2 - 1;
+
+                slideNoise = specialCtx.createBufferSource();
+                slideNoise.buffer = buffer; slideNoise.loop = true;
+                const f = specialCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800;
+                slideGain = specialCtx.createGain(); slideGain.gain.value = 0;
+                slideNoise.connect(f); f.connect(slideGain); slideGain.connect(specialCtx.destination);
+                slideNoise.start();
+
+                window.triggerThud = () => {
+                    const o = specialCtx.createOscillator(); const g = specialCtx.createGain();
+                    o.type = 'sine'; o.frequency.setValueAtTime(120, specialCtx.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(40, specialCtx.currentTime + 0.1);
+                    g.gain.setValueAtTime(0.7, specialCtx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.01, specialCtx.currentTime + 0.3);
+                    o.connect(g); g.connect(specialCtx.destination);
+                    o.start(); o.stop(specialCtx.currentTime + 0.3);
+                };
+            };
+
+            const originalAnimateAudio = animate;
+            animate = function() {
+                originalAnimateAudio();
+                if (slideGain) {
+                    const target = isSliding ? 0.35 : 0;
+                    slideGain.gain.setTargetAtTime(target, specialCtx.currentTime, 0.05);
+                }
+            };
+        })();
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
