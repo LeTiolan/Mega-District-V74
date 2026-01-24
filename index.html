@@ -660,7 +660,7 @@
                 const resonance = ctx.createBiquadFilter(); 
                 const gain = ctx.createGain();
 
-                // 1. FILTERED NOISE: Adds the "ceramic crunch" without electronic hiss
+                // 1. FILTERED NOISE: Adds the "ceramic crunch"
                 const bufferSize = ctx.sampleRate * 0.1;
                 const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -669,23 +669,24 @@
 
                 // 2. FULL BASS: Triangle wave for a clean, heavy "thud"
                 osc.type = 'triangle';
-                // Fast pitch drop from 120Hz to 45Hz simulates the hard impact of ceramic
                 osc.frequency.setValueAtTime(120, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.03);
                 
-                // 3. METALLIC RING: Isolates the ringing "ping" frequency
+                // 3. METALLIC RING: Ringing "ping" frequency
                 resonance.type = 'bandpass';
                 resonance.frequency.value = 450; 
                 resonance.Q.value = 15;          
 
-                // 4. LOW PASS: Removes sharp static from the noise
+                // 4. LOW PASS: Removes sharp static
                 filter.type = 'lowpass';
                 filter.frequency.value = 600;
 
+                // --- LOUDER SETTINGS ---
                 gain.gain.setValueAtTime(0, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(volume * 0.4, ctx.currentTime + 0.005);
-                // Longer decay to feel the weight of the step
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                // Increased multiplier from 0.4 to 1.2 for more impact
+                gain.gain.linearRampToValueAtTime(volume * 1.2, ctx.currentTime + 0.005);
+                // Extended decay slightly to 0.25 to make the weight "echo" more
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
 
                 osc.connect(gain);
                 noise.connect(filter);
@@ -695,8 +696,8 @@
 
                 osc.start();
                 noise.start();
-                osc.stop(ctx.currentTime + 0.2);
-                noise.stop(ctx.currentTime + 0.2);
+                osc.stop(ctx.currentTime + 0.25);
+                noise.stop(ctx.currentTime + 0.25);
             };
 
             const originalAnimate = animate;
