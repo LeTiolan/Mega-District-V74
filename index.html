@@ -206,6 +206,7 @@
         const collidableBoxes = []; 
         const playerSize = 0.7;
         let isInventoryOpen = false;
+        let playHoverSound;
 
         /* --- SLIDE SYSTEM --- */
         let isSliding = false;
@@ -542,7 +543,9 @@
                     dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color;
                     slot.appendChild(dot);
                 }
+                slot.onmouseenter = () => playHoverSound();
                 slot.onclick = () => {
+                    playHoverSound();
                     document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
                     slot.classList.add('active');
                     const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
@@ -551,7 +554,12 @@
                 };
                 grid.appendChild(slot);
             }
-            document.getElementById('inv-close-btn').onclick = toggleInventory;
+            const closeBtn = document.getElementById('inv-close-btn');
+            closeBtn.onmouseenter = () => playHoverSound();
+            closeBtn.onclick = () => { playHoverSound(); toggleInventory(); };
+
+            const startBtn = document.getElementById('start-btn');
+            startBtn.onmouseenter = () => playHoverSound();
         }
 
         function toggleInventory() {
@@ -582,16 +590,40 @@
                 camera.add(audioListener);
                 districtWind = new THREE.Audio(audioListener);
                 const ctx = audioListener.context;
-                const bufferSize = 2 * ctx.sampleRate;
+                
+                // Create larger buffer for smoother low-end
+                const bufferSize = 4 * ctx.sampleRate;
                 const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                
+                // Generate Pink-ish noise
+                let lastOut = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 3.5;
+                }
+                
                 districtWind.setBuffer(noiseBuffer);
                 districtWind.setLoop(true);
                 districtWind.setVolume(0);
+
                 const windFilter = ctx.createBiquadFilter();
-                windFilter.type = 'lowpass'; windFilter.frequency.value = 250; 
+                windFilter.type = 'lowpass';
+                windFilter.frequency.value = 400; 
+                windFilter.Q.value = 2;
                 districtWind.setFilter(windFilter);
+
+                // --- GUSTING LOGIC (LFO) ---
+                const lfo = ctx.createOscillator();
+                const lfoGain = ctx.createGain();
+                lfo.type = 'sine';
+                lfo.frequency.value = 0.15;
+                lfoGain.gain.value = 200;
+                lfo.connect(lfoGain);
+                lfoGain.connect(windFilter.frequency);
+                lfo.start();
             };
 
             const playBirdChirp = () => {
@@ -624,7 +656,7 @@
                         nextBirdTime = ctx.currentTime + 5;
                     }
                     const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
-                    const targetVol = 0.45 + Math.min(currentSpeed, 0.3); 
+                    const targetVol = 0.15 + Math.min(currentSpeed, 0.2); 
                     districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), targetVol, 0.03));
                     if (ctx.currentTime > nextBirdTime) {
                         playBirdChirp();
@@ -637,6 +669,20 @@
                         isPlaying = false;
                     }
                 }
+            };
+
+            playHoverSound = () => {
+                const ctx = audioListener.context;
+                const woodOsc = ctx.createOscillator(); const woodGain = ctx.createGain(); const woodFilter = ctx.createBiquadFilter();
+                woodOsc.type = 'triangle'; woodOsc.frequency.setValueAtTime(600, ctx.currentTime); woodOsc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
+                woodFilter.type = 'bandpass'; woodFilter.frequency.value = 1200; woodFilter.Q.value = 5;
+                woodGain.gain.setValueAtTime(0, ctx.currentTime); woodGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.005); woodGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+                const clackOsc = ctx.createOscillator(); const clackGain = ctx.createGain();
+                clackOsc.type = 'sine'; clackOsc.frequency.setValueAtTime(2200, ctx.currentTime);
+                clackGain.gain.setValueAtTime(0, ctx.currentTime); clackGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.002); clackGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02);
+                woodOsc.connect(woodFilter); woodFilter.connect(woodGain); woodGain.connect(ctx.destination);
+                clackOsc.connect(clackGain); clackGain.connect(ctx.destination);
+                woodOsc.start(); clackOsc.start(); woodOsc.stop(ctx.currentTime + 0.07); clackOsc.stop(ctx.currentTime + 0.07);
             };
         })();
 
@@ -682,84 +728,6 @@
                     }
                 }
             };
-        })();
-    </script>
-
-    <script>
-        (function() {
-            const playWoodSound = (isMenu) => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioCtx.currentTime;
-                
-                // --- The "Body" of the sound ---
-                const bodyOsc = audioCtx.createOscillator();
-                const bodyGain = audioCtx.createGain();
-                const bodyFilter = audioCtx.createBiquadFilter();
-                
-                // MENU = Deep Thud (300Hz), INVENTORY = Standard Clack (600Hz)
-                const startFreq = isMenu ? 300 : 600;
-                const endFreq = isMenu ? 50 : 250;
-                
-                bodyOsc.type = 'triangle';
-                bodyOsc.frequency.setValueAtTime(startFreq, now);
-                bodyOsc.frequency.exponentialRampToValueAtTime(endFreq, now + (isMenu ? 0.15 : 0.04));
-                
-                bodyFilter.type = 'lowpass'; 
-                bodyFilter.frequency.value = isMenu ? 800 : 1200;
-                
-                bodyGain.gain.setValueAtTime(0, now);
-                bodyGain.gain.linearRampToValueAtTime(isMenu ? 0.2 : 0.08, now + 0.005);
-                bodyGain.gain.exponentialRampToValueAtTime(0.001, now + (isMenu ? 0.2 : 0.06));
-                
-                // --- The "Impact" (The initial contact) ---
-                const impactOsc = audioCtx.createOscillator();
-                const impactGain = audioCtx.createGain();
-                
-                impactOsc.type = 'sine';
-                impactOsc.frequency.setValueAtTime(isMenu ? 1000 : 2200, now);
-                
-                impactGain.gain.setValueAtTime(0, now);
-                impactGain.gain.linearRampToValueAtTime(isMenu ? 0.03 : 0.05, now + 0.002);
-                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-                
-                bodyOsc.connect(bodyFilter);
-                bodyFilter.connect(bodyGain);
-                bodyGain.connect(audioCtx.destination);
-                
-                impactOsc.connect(impactGain);
-                impactGain.connect(audioCtx.destination);
-                
-                bodyOsc.start();
-                impactOsc.start();
-                bodyOsc.stop(now + 0.3);
-                impactOsc.stop(now + 0.3);
-            };
-
-            // TARGET: Main Menu Start Button (Heavier Thud)
-            const startBtn = document.getElementById('start-btn');
-            if (startBtn) {
-                startBtn.addEventListener('mouseenter', () => playWoodSound(true));
-                startBtn.addEventListener('mousedown', () => playWoodSound(true));
-            }
-
-            // TARGET: Inventory/UI Elements (Standard Clack)
-            const linkUI = setInterval(() => {
-                const slots = document.querySelectorAll('.inv-slot');
-                const closeBtn = document.getElementById('inv-close-btn');
-                
-                if (slots.length > 0) {
-                    slots.forEach(slot => {
-                        slot.addEventListener('mouseenter', () => playWoodSound(false));
-                        slot.addEventListener('click', () => playWoodSound(false));
-                    });
-                    
-                    if (closeBtn) {
-                        closeBtn.addEventListener('mouseenter', () => playWoodSound(false));
-                        closeBtn.addEventListener('click', () => playWoodSound(false));
-                    }
-                    clearInterval(linkUI);
-                }
-            }, 500);
         })();
     </script>
 </body>
