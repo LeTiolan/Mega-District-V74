@@ -3,88 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M.A.N.U.L. - MEGA DISTRICT V39.1</title>
+    <title>M.A.N.U.L. PROTOCOL - V39.2</title>
     <style>
-        /* CSS REMAINS UNCHANGED FOR PERFORMANCE */
-        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
+        body { margin: 0; overflow: hidden; font-family: monospace; background: #111; }
         canvas { display: block; }
-        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
-        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
-        .dot { display: inline-block; animation: oscillate 1.4s ease-in-out infinite; }
-        @keyframes oscillate { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; } }
-        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
-        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
-        #neural-link-ui { position: fixed; top: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #ff4b2b; color: white; font-family: monospace; font-size: 10px; border-radius: 4px; backdrop-filter: blur(10px); }
-        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; color: #111; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); z-index: 20; }
-        .menu-wrapper { width: 600px; display: flex; flex-direction: column; align-items: center; }
-        .tab-container { display: flex; gap: 40px; margin-bottom: 30px; border-bottom: 1px solid rgba(0,0,0,0.1); width: 100%; justify-content: center; }
-        .tab-btn { font-size: 0.8rem; letter-spacing: 4px; padding-bottom: 10px; cursor: pointer; opacity: 0.4; transition: 0.3s; text-transform: uppercase; }
-        .tab-btn.active { opacity: 1; border-bottom: 2px solid #ff4b2b; color: #ff4b2b; }
-        #keybind-settings { display: none; width: 100%; flex-direction: column; gap: 12px; }
-        #main-manual { display: flex; flex-direction: column; align-items: center; }
-        .key-row { display: flex; justify-content: space-between; width: 100%; padding: 10px 20px; background: rgba(0,0,0,0.03); border-radius: 6px; align-items: center; }
-        .key-label { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: #666; }
-        .key-cap { background: #111; color: white; padding: 6px 15px; min-width: 80px; text-align: center; border-radius: 4px; cursor: pointer; }
-        .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
-        .title-init { font-size: 3rem; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; border-right: 4px solid #ff4b2b; white-space: nowrap; }
-        .animate-type { animation: typing 2.2s steps(15, end) forwards; width: 0; }
-        @keyframes typing { from { width: 0 } to { width: 100% } }
-        #instructions p { font-size: 0.8rem; margin: 6px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: opacity 0.5s ease; }
-        .show-p { opacity: 1 !important; }
-        .start-prompt { position: relative; margin-top: 30px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; padding: 12px 40px; letter-spacing: 5px; }
-        #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
-        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
-        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
-        .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
-        #health-fill { background: #ff416c; }
-        #stamina-fill { background: #6dd5ed; }
-        #cd-fill { background: #ffea00; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; }
-        .inventory-window { width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid white; border-radius: 50%; mix-blend-mode: difference; pointer-events: none; }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        #neural-link-ui { position: fixed; top: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.9); padding: 15px; border: 1px solid #ff4b2b; color: white; border-radius: 4px; }
+        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(255,255,255,0.9); z-index: 20; }
+        .start-prompt { font-weight: bold; color: #ff4b2b; cursor: pointer; letter-spacing: 5px; margin-top: 20px; }
+        #hud { position: fixed; bottom: 20px; left: 20px; color: white; z-index: 10; }
+        .bar { width: 200px; height: 10px; background: #333; margin: 5px 0; border-radius: 5px; overflow: hidden; }
+        #stamina-fill { width: 100%; height: 100%; background: #6dd5ed; transition: width 0.1s; }
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 </head>
 <body>
-    <div id="loading-screen">
-        <div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
-        <div class="loader-container"><div id="loader-fill"></div></div>
-    </div>
+    <div id="loading-screen"><h1>INITIALIZING NEURAL LINK...</h1></div>
 
     <div id="neural-link-ui">
-        <div style="color: #ff4b2b; margin-bottom: 8px; font-weight: bold; letter-spacing: 2px;">NEURAL_LINK_READY</div>
-        <input type="file" id="robot-file" accept=".glb" style="background: #111; color: #666; border: none; font-size: 9px; width: 150px;">
-        <div style="margin-top: 5px; opacity: 0.5;">UPLOAD M.A.N.U.L. (.GLB)</div>
+        <div style="color: #ff4b2b; font-weight: bold; margin-bottom: 5px;">M.A.N.U.L. UPLOAD</div>
+        <input type="file" id="robot-file" accept=".glb">
     </div>
 
-    <div id="crosshair"></div>
     <div id="instructions">
-        <div class="menu-wrapper">
-            <div class="title-container"><h1 id="menu-title" class="title-init">MEGA DISTRICT</h1></div>
-            <div class="tab-container">
-                <div class="tab-btn active" id="tab-manual">Manual</div>
-                <div class="tab-btn" id="tab-keybinds">Keybinds</div>
-            </div>
-            <div id="main-manual">
-                <p>WASD — MOVE</p><p>SHIFT — SPRINT</p><p>Q — SLIDE</p><p>V — TOGGLE PERSPECTIVE</p><p>TAB — INVENTORY</p>
-                <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
-            </div>
-            <div id="keybind-settings"></div>
-        </div>
+        <h1>MEGA DISTRICT</h1>
+        <p>WASD: MOVE | SHIFT: SPRINT | V: TOGGLE VIEW</p>
+        <div class="start-prompt" id="start-btn">CLICK TO ENGAGE</div>
     </div>
 
-    <div id="hud-container">
-        <div class="stat-wrapper"><div class="bar-container"><div id="cd-fill" class="bar-fill"></div></div></div>
-        <div class="stat-wrapper"><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
-        <div class="stat-wrapper"><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
-    </div>
-
-    <div id="inventory-overlay">
-        <div class="inventory-window"><div class="inv-grid" id="inv-grid-container"></div></div>
+    <div id="hud">
+        STAMINA
+        <div class="bar"><div id="stamina-fill"></div></div>
     </div>
 
     <script type="module">
@@ -92,182 +43,130 @@
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        let camera, scene, renderer, controls, cameraGroup;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
-        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
-        let prevTime = performance.now();
-        let bobTimer = 0, health = 100, stamina = 100;
-        let leftUpper, rightUpper;
-        const collidableBoxes = [];
-        let isInventoryOpen = false;
-        
-        // M.A.N.U.L. PERSPECTIVE VARS
-        let manulModel = null;
+        let scene, camera, renderer, controls, cameraGroup, manulModel;
+        let moveF = false, moveB = false, moveL = false, moveR = false, isSprinting = false;
+        let velocity = new THREE.Vector3();
         let isThirdPerson = false;
-        let binds = { forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD', sprint: 'ShiftLeft', jump: 'Space', slide: 'KeyQ', inventory: 'Tab', perspective: 'KeyV' };
-        let isListeningForKey = null;
+        let stamina = 100;
 
-        /* --- CORE INITIALIZATION --- */
+        init();
+
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xdddddd);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            scene.background = new THREE.Color(0xcccccc);
             
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
-            scene.add(hemiLight);
-            
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            sunLight.position.set(50, 100, 50); sunLight.castShadow = true;
-            scene.add(sunLight);
+            // Default Camera position (Slightly up)
+            cameraGroup.position.set(0, 5, 0);
+
+            const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+            scene.add(light);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
             controls = new PointerLockControls(cameraGroup, document.body);
             document.getElementById('start-btn').onclick = () => controls.lock();
+            
+            controls.addEventListener('lock', () => {
+                document.getElementById('instructions').style.display = 'none';
+            });
+            controls.addEventListener('unlock', () => {
+                document.getElementById('instructions').style.display = 'flex';
+            });
 
-            // Baseline Limbs (Grey Capsules)
-            const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
-            const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
-            leftUpper = new THREE.Mesh(upperGeo, limbMat); 
-            leftUpper.position.set(-0.6, -1.0, 0.2); camera.add(leftUpper);
-            rightUpper = new THREE.Mesh(upperGeo, limbMat); 
-            rightUpper.position.set(0.6, -1.0, 0.2); camera.add(rightUpper);
+            // Floor
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
+            floor.rotation.x = -Math.PI/2;
+            scene.add(floor);
 
-            // M.A.N.U.L. Loader
+            // FILE UPLOAD LOGIC
             const loader = new GLTFLoader();
             document.getElementById('robot-file').onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 loader.load(URL.createObjectURL(file), (gltf) => {
-                    if (manulModel) scene.remove(manulModel);
+                    if (manulModel) cameraGroup.remove(manulModel);
                     manulModel = gltf.scene;
                     
-                    manulModel.traverse(n => {
-                        if (n.isMesh) {
-                            n.castShadow = true;
-                            if (n.name.toLowerCase().includes('head')) n.layers.set(1);
-                        }
-                    });
-
-                    // Attach to player group
-                    cameraGroup.add(manulModel);
-                    manulModel.position.set(0, -5, 0);
-                    manulModel.rotation.y = Math.PI;
+                    // Center and scale the model
+                    manulModel.scale.set(1.5, 1.5, 1.5);
+                    manulModel.position.set(0, -2.5, 0); // Position at feet level
+                    manulModel.rotation.y = Math.PI; // Face forward
                     
-                    // Hide baseline limbs
-                    leftUpper.visible = false; rightUpper.visible = false;
-                    document.getElementById('neural-link-ui').style.display = 'none';
+                    cameraGroup.add(manulModel);
+                    document.getElementById('neural-link-ui').style.opacity = '0.3';
+                    console.log("M.A.N.U.L. Online");
                 });
             };
 
-            // World Gen (Floor/Walls)
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshPhongMaterial({ color: 0x999999 }));
-            floor.rotation.x = -Math.PI/2; scene.add(floor);
+            window.addEventListener('keydown', (e) => {
+                if(e.code === 'KeyW') moveF = true;
+                if(e.code === 'KeyS') moveB = true;
+                if(e.code === 'KeyA') moveL = true;
+                if(e.code === 'KeyD') moveR = true;
+                if(e.code === 'ShiftLeft') isSprinting = true;
+                if(e.code === 'KeyV') toggleView();
+            });
 
-            cameraGroup.position.set(0, 5, 0);
-            setupInput();
+            window.addEventListener('keyup', (e) => {
+                if(e.code === 'KeyW') moveF = false;
+                if(e.code === 'KeyS') moveB = false;
+                if(e.code === 'KeyA') moveL = false;
+                if(e.code === 'KeyD') moveR = false;
+                if(e.code === 'ShiftLeft') isSprinting = false;
+            });
+
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('instructions').style.display = 'flex';
+            }, 1000);
+
             animate();
-            startLoading();
         }
 
-        function setupInput() {
-            document.addEventListener('keydown', (e) => {
-                if (isListeningForKey) { binds[isListeningForKey] = e.code; isListeningForKey = null; return; }
-                if (e.code === binds.forward) moveForward = true;
-                if (e.code === binds.backward) moveBackward = true;
-                if (e.code === binds.left) moveLeft = true;
-                if (e.code === binds.right) moveRight = true;
-                if (e.code === binds.sprint) isRunning = true;
-                if (e.code === binds.perspective) togglePerspective();
-                if (e.code === binds.jump && canJump) { velocity.y += 22; canJump = false; }
-            });
-            document.addEventListener('keyup', (e) => {
-                if (e.code === binds.forward) moveForward = false;
-                if (e.code === binds.backward) moveBackward = false;
-                if (e.code === binds.left) moveLeft = false;
-                if (e.code === binds.right) moveRight = false;
-                if (e.code === binds.sprint) isRunning = false;
-            });
-        }
-
-        function togglePerspective() {
+        function toggleView() {
             isThirdPerson = !isThirdPerson;
             if (isThirdPerson) {
-                camera.position.set(0, 4, 8); // Drone view
-                camera.lookAt(0, 0, 0);
-                camera.layers.enable(1); // Show head
+                camera.position.set(0, 3, 7); // Move camera back and up
+                camera.lookAt(0, 0, -2);
             } else {
-                camera.position.set(0, 0, 0); // FPS view
-                camera.layers.disable(1); // Hide head to prevent clipping
-            }
-        }
-
-        function updateRig() {
-            if (!manulModel) return;
-            const neck = manulModel.getObjectByName("Neck") || manulModel.getObjectByName("Head");
-            if (neck) neck.rotation.x = camera.rotation.x * 0.5;
-
-            const legL = manulModel.getObjectByName("Leg_L");
-            const legR = manulModel.getObjectByName("Leg_R");
-            if (legL && legR && (moveForward || moveBackward || moveLeft || moveRight)) {
-                legL.rotation.x = Math.sin(bobTimer * 8) * 0.5;
-                legR.rotation.x = -Math.sin(bobTimer * 8) * 0.5;
+                camera.position.set(0, 0, 0); // Return to eyes
             }
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            const time = performance.now();
-            const delta = (time - prevTime) / 1000;
-
+            
             if (controls.isLocked) {
+                const delta = 0.15;
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
-                velocity.y -= 9.8 * 5.0 * delta;
-                
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
 
-                const speed = isRunning ? 200 : 120;
-                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+                const speed = (isSprinting && stamina > 0) ? 1.2 : 0.6;
+                if (moveF) velocity.z -= speed;
+                if (moveB) velocity.z += speed;
+                if (moveL) velocity.x -= speed;
+                if (moveR) velocity.x += speed;
 
-                controls.moveForward(-velocity.z * delta);
-                controls.moveRight(-velocity.x * delta);
-                cameraGroup.position.y += (velocity.y * delta);
+                controls.moveForward(-velocity.z * 0.1);
+                controls.moveRight(velocity.x * 0.1);
 
-                if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
-                
-                bobTimer += delta;
-                updateRig();
+                if (isSprinting && (moveF || moveB || moveL || moveR)) {
+                    stamina = Math.max(0, stamina - 0.5);
+                } else {
+                    stamina = Math.min(100, stamina + 0.2);
+                }
+                document.getElementById('stamina-fill').style.width = stamina + '%';
             }
-            prevTime = time;
+
             renderer.render(scene, camera);
         }
-
-        function startLoading() {
-            const fill = document.getElementById('loader-fill');
-            let p = 0;
-            const inv = setInterval(() => {
-                p += 2; fill.style.width = p + '%';
-                if (p >= 100) { 
-                    clearInterval(inv); 
-                    document.getElementById('loading-screen').style.display = 'none';
-                    document.getElementById('instructions').style.display = 'flex';
-                    document.getElementById('instructions').style.opacity = '1';
-                }
-            }, 20);
-        }
-
-        init();
     </script>
 </body>
 </html>
