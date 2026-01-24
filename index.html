@@ -3,112 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - Master Baseline V33</title>
+    <title>Geometric Range - Master Baseline V33 (Layered)</title>
     <style>
-        /* --- STYLES REMAIN UNCOMPRESSED & ORIGINAL --- */
+        /* --- ALL ORIGINAL BASELINE STYLES UNCHANGED --- */
         body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
         canvas { display: block; }
-
-        #loading-screen { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #eeeeee; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 100; 
-        }
-
-        #instructions { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: none; flex-direction: column; justify-content: center; 
-            align-items: center; color: #111; background: rgba(255, 255, 255, 0.7); 
-            backdrop-filter: blur(12px); z-index: 20; 
-        }
-
-        .title-init { 
-            font-size: 3rem; letter-spacing: 8px; font-weight: 200; 
-            text-transform: uppercase; border-right: 4px solid #ff4b2b; 
-            white-space: nowrap; display: inline-block; width: 0; 
-            animation: typing 2.2s steps(15, end) forwards; 
-        }
-
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eeeeee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s ease; }
+        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; display: flex; align-items: baseline; }
+        .dot { display: inline-block; animation: oscillate 1.4s ease-in-out infinite; }
+        .dot:nth-child(1) { animation-delay: 0s; } 
+        .dot:nth-child(2) { animation-delay: 0.2s; } 
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes oscillate { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; } }
+        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
+        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
+        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; color: #111; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); z-index: 20; transition: opacity 0.4s ease; }
+        .title-init { font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; overflow: hidden; border-right: 4px solid #ff4b2b; white-space: nowrap; display: inline-block; width: 0; animation: typing 2.2s steps(15, end) forwards; }
         @keyframes typing { from { width: 0 } to { width: 100% } }
-
-        .start-prompt { 
-            margin-top: 40px; font-weight: bold; color: #ff4b2b; 
-            cursor: pointer; letter-spacing: 5px; 
-        }
-
-        /* --- KEYBIND MENU UI --- */
-        #keybind-menu {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; 
-            align-items: center; background: white; z-index: 50;
-        }
-
-        .kb-list { width: 350px; }
-        .kb-item { 
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; border-bottom: 1px solid #eee; font-size: 0.8rem; 
-        }
-
-        .kb-key-box { 
-            background: #f0f0f0; padding: 5px 12px; border-radius: 4px; 
-            font-weight: bold; cursor: pointer; border: 1px solid #ccc;
-            min-width: 60px; text-align: center; transition: all 0.2s;
-        }
-
-        .kb-key-box:hover { border-color: #ff4b2b; color: #ff4b2b; }
-        .waiting { background: #ff4b2b; color: white; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
-
-        /* --- HUD STYLES --- */
+        #instructions p { font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: opacity 0.5s ease; }
+        .show-p { opacity: 1 !important; }
+        .start-prompt { margin-top: 40px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; letter-spacing: 5px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid white; border-radius: 50%; pointer-events: none; mix-blend-mode: difference; }
         #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; }
         .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); }
-        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; }
-        .bar-fill { width: 100%; height: 100%; background: #6dd5ed; }
+        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+        .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
+        #health-fill { background: #ff416c; } #stamina-fill { background: #6dd5ed; }
+        .stat-label { color: white; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- KEYBIND MENU STYLES (ADDED LAYER) --- */
+        #keybind-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background: white; z-index: 50; }
+        .kb-list { width: 300px; }
+        .kb-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
+        .kb-key-box { background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; }
+        .kb-key-box.waiting { background: #ff4b2b; color: white; }
     </style>
-    <script type="importmap"> 
-    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } } 
-    </script>
+    <script type="importmap"> { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } } </script>
 </head>
 <body>
-
     <div id="loading-screen">
-        <h1 style="letter-spacing:10px">LOADING...</h1>
+        <div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+        <div class="loader-container"><div id="loader-fill"></div></div>
     </div>
+    
+    <div id="vignette"></div><div id="crosshair"></div>
     
     <div id="instructions">
         <h1 class="title-init">MEGA DISTRICT</h1>
+        <p class="show-p">WASD - MOVE | SHIFT - SPRINT</p>
+        <p class="show-p">SPACE - JUMP | Q - SLIDE</p>
         <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
-        <p id="kb-open-btn" style="cursor:pointer; color:#888; font-size:0.7rem; margin-top:20px;">[ CONFIGURE INPUTS ]</p>
+        <p id="kb-open-btn" style="cursor:pointer; color:#888; font-size:0.7rem; margin-top:20px;">[ KEYBINDS ]</p>
     </div>
 
     <div id="keybind-menu">
-        <h2 style="letter-spacing: 5px;">INPUT MAPPER</h2>
-        <div class="kb-list" id="kb-list-container">
-            </div>
-        <p class="start-prompt" id="kb-close-btn" style="font-size: 0.7rem;">SAVE & EXIT</p>
+        <h2 style="letter-spacing: 5px;">REBIND CONTROLS</h2>
+        <div class="kb-list" id="kb-list-container"></div>
+        <p class="start-prompt" id="kb-close-btn" style="font-size: 0.7rem;">RETURN</p>
     </div>
 
     <div id="hud-container">
-        <div class="stat-wrapper"><div id="stamina-fill" style="height:6px; width:100%; background:#6dd5ed; border-radius:10px;"></div></div>
+        <div class="stat-wrapper"><div class="stat-label">Health</div><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="stat-label">Stamina</div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- NEW KEYBIND LAYER DATA ---
-        let keyConfig = {
-            forward: 'KeyW',
-            backward: 'KeyS',
-            left: 'KeyA',
-            right: 'KeyD',
-            jump: 'Space',
-            sprint: 'ShiftLeft'
-        };
+        // --- LAYERED DATA (NEW) ---
+        let keyConfig = { forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', sprint: 'ShiftLeft' };
+        let rebindingAction = null;
 
-        let currentlyRebinding = null;
-
-        // --- ORIGINAL BASELINE VARIABLES ---
+        // --- ORIGINAL BASELINE VARIABLES (UNTOUCHED) ---
         let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
@@ -122,8 +91,9 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
 
+            const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 1.5); scene.add(ambient);
             const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(50, 100, 50); sun.castShadow = true;
-            scene.add(sun); scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 1.5));
+            sun.shadow.mapSize.set(2048, 2048); scene.add(sun);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -131,85 +101,97 @@
             document.body.appendChild(renderer.domElement);
 
             controls = new PointerLockControls(cameraGroup, document.body);
-            
-            // Menu Logic
             document.getElementById('start-btn').addEventListener('click', () => controls.lock());
             controls.addEventListener('lock', () => document.getElementById('instructions').style.display = 'none');
             controls.addEventListener('unlock', () => document.getElementById('instructions').style.display = 'flex');
 
-            // Keybind Menu Logic
-            document.getElementById('kb-open-btn').addEventListener('click', () => {
-                renderKeybindList();
-                document.getElementById('keybind-menu').style.display = 'flex';
-            });
-            document.getElementById('kb-close-btn').addEventListener('click', () => {
-                document.getElementById('keybind-menu').style.display = 'none';
-            });
+            // --- UI LAYER LOGIC (NEW) ---
+            document.getElementById('kb-open-btn').onclick = () => { renderKB(); document.getElementById('keybind-menu').style.display = 'flex'; };
+            document.getElementById('kb-close-btn').onclick = () => { document.getElementById('keybind-menu').style.display = 'none'; };
 
-            // Baseline World Generation
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: 0x999999 }));
             floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 
-            for (let i = 0; i < 50; i++) {
+            for(let i=0; i<50; i++) {
                 const h = 10 + Math.random() * 20;
                 const b = new THREE.Mesh(new THREE.BoxGeometry(10, h, 10), new THREE.MeshPhongMaterial({ color: 0xffffff }));
-                b.position.set(Math.random() * 160 - 80, h / 2, Math.random() * 160 - 80);
+                b.position.set(Math.random()*160-80, h/2, Math.random()*160-80);
                 b.castShadow = true; b.receiveShadow = true; scene.add(b);
                 collidableBoxes.push(new THREE.Box3().setFromObject(b));
             }
 
-            // --- REFACTORED INPUT LISTENERS ---
+            for(let i=0; i<15; i++) {
+                const c = new THREE.Mesh(new THREE.SphereGeometry(10, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+                c.position.set(Math.random()*400-200, 80, Math.random()*400-200); c.scale.y = 0.2; scene.add(c);
+            }
+
+            // --- CUSTOM KEYBIND REDIRECTION LAYER (NEW) ---
             document.addEventListener('keydown', (e) => {
-                // If we are currently remapping a key in the menu
-                if (currentlyRebinding) {
-                    keyConfig[currentlyRebinding] = e.code;
-                    currentlyRebinding = null;
-                    renderKeybindList();
+                if (rebindingAction) {
+                    keyConfig[rebindingAction] = e.code;
+                    rebindingAction = null;
+                    renderKB();
                     return;
                 }
-
-                // Game Logic uses keyConfig variables instead of strings
-                if (e.code === keyConfig.forward) moveForward = true;
-                if (e.code === keyConfig.backward) moveBackward = true;
-                if (e.code === keyConfig.left) moveLeft = true;
-                if (e.code === keyConfig.right) moveRight = true;
-                if (e.code === keyConfig.sprint) isRunning = true;
-                if (e.code === keyConfig.jump && canJump) { velocity.y += 22; canJump = false; }
+                // This checks your custom binds and triggers the baseline flags
+                if(e.code === keyConfig.forward) moveForward = true;
+                if(e.code === keyConfig.backward) moveBackward = true;
+                if(e.code === keyConfig.left) moveLeft = true;
+                if(e.code === keyConfig.right) moveRight = true;
+                if(e.code === keyConfig.sprint) isRunning = true;
+                if(e.code === keyConfig.jump && canJump) { velocity.y += 22; canJump = false; }
             });
 
             document.addEventListener('keyup', (e) => {
-                if (e.code === keyConfig.forward) moveForward = false;
-                if (e.code === keyConfig.backward) moveBackward = false;
-                if (e.code === keyConfig.left) moveLeft = false;
-                if (e.code === keyConfig.right) moveRight = false;
-                if (e.code === keyConfig.sprint) isRunning = false;
+                if(e.code === keyConfig.forward) moveForward = false;
+                if(e.code === keyConfig.backward) moveBackward = false;
+                if(e.code === keyConfig.left) moveLeft = false;
+                if(e.code === keyConfig.right) moveRight = false;
+                if(e.code === keyConfig.sprint) isRunning = false;
+            });
+
+            // --- ORIGINAL BASELINE INPUT LISTENERS (UNTOUCHED) ---
+            document.addEventListener('keydown', (e) => {
+                switch (e.code) {
+                    case 'KeyW': moveForward = true; break;
+                    case 'KeyS': moveBackward = true; break;
+                    case 'KeyA': moveLeft = true; break;
+                    case 'KeyD': moveRight = true; break;
+                    case 'ShiftLeft': isRunning = true; break;
+                    case 'Space': 
+                        if (canJump) {
+                            velocity.y += 22; 
+                            canJump = false; 
+                        }
+                        break;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                switch (e.code) {
+                    case 'KeyW': moveForward = false; break;
+                    case 'KeyS': moveBackward = false; break;
+                    case 'KeyA': moveLeft = false; break;
+                    case 'KeyD': moveRight = false; break;
+                    case 'ShiftLeft': isRunning = false; break;
+                }
             });
 
             cameraGroup.position.y = 5;
             animate();
         }
 
-        function renderKeybindList() {
-            const container = document.getElementById('kb-list-container');
-            container.innerHTML = '';
-            Object.keys(keyConfig).forEach(action => {
-                const row = document.createElement('div');
-                row.className = 'kb-item';
-                row.innerHTML = `
-                    <span style="text-transform: capitalize;">${action}</span>
-                    <div class="kb-key-box ${currentlyRebinding === action ? 'waiting' : ''}" 
-                         onclick="window.startRebind('${action}')">
-                        ${keyConfig[action].replace('Key', '').replace('Left', '')}
-                    </div>
-                `;
-                container.appendChild(row);
+        function renderKB() {
+            const res = document.getElementById('kb-list-container');
+            res.innerHTML = '';
+            Object.keys(keyConfig).forEach(k => {
+                const div = document.createElement('div');
+                div.className = 'kb-item';
+                div.innerHTML = `<span>${k}</span><div class="kb-key-box ${rebindingAction===k?'waiting':''}" onclick="window.setRebind('${k}')">${keyConfig[k]}</div>`;
+                res.appendChild(div);
             });
         }
-
-        window.startRebind = (action) => {
-            currentlyRebinding = action;
-            renderKeybindList();
-        };
+        window.setRebind = (a) => { rebindingAction = a; renderKB(); };
 
         function animate() {
             requestAnimationFrame(animate);
@@ -244,12 +226,12 @@
             renderer.render(scene, camera);
         }
 
-        // Preloader
-        setTimeout(() => {
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('instructions').style.display = 'flex';
-            init();
-        }, 1000);
+        const loadFill = document.getElementById('loader-fill');
+        let prog = 0;
+        const loadInt = setInterval(() => {
+            prog += 10; loadFill.style.width = prog + '%';
+            if(prog >= 100) { clearInterval(loadInt); document.getElementById('loading-screen').style.display='none'; document.getElementById('instructions').style.display='flex'; init(); }
+        }, 100);
     </script>
 </body>
 </html>
