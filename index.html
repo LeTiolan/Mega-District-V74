@@ -3,819 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Range - V23 Baseline + Cloud Shadows</title>
+    <title>Geometric Range - Condensed Baseline</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', 'Courier New', monospace; background-color: #eeeeee; }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', monospace; background: #eee; }
         canvas { display: block; }
-        
-        /* --- LOADING SCREEN --- */
-        #loading-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #eeeeee; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 100;
-            transition: opacity 0.8s ease;
-        }
-
-        .loader-title { 
-            font-size: 5rem; 
-            letter-spacing: 20px; 
-            font-weight: 200; 
-            color: #111; 
-            margin-bottom: 60px; 
-            text-transform: uppercase;
-            display: flex;
-            align-items: baseline;
-        }
-
-        .dot {
-            display: inline-block;
-            animation: oscillate 1.4s ease-in-out infinite;
-        }
-        .dot:nth-child(1) { animation-delay: 0s; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes oscillate {
-            0%, 100% { transform: translateX(0); opacity: 0.3; }
-            50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; }
-        }
-
-        .loader-container { 
-            width: 80%; 
-            height: 30px; 
-            background: rgba(0,0,0,0.08); 
-            border-radius: 15px; 
-            overflow: hidden; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
-        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; transition: width 0.1s linear; }
-
-        /* --- MENU UI --- */
-        #instructions {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: #111; background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            user-select: none; z-index: 20; 
-            transition: opacity 0.4s ease;
-        }
-
-        .title-container { height: 4.5rem; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
-        
-        .title-init { 
-            font-size: 3rem; margin: 0; letter-spacing: 8px; font-weight: 200; 
-            text-transform: uppercase; overflow: hidden; border-right: 4px solid #ff4b2b; 
-            white-space: nowrap; display: inline-block; width: auto;
-        }
-        
-        .cursor-blink { animation: blink 0.8s step-end infinite; }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.8s; }
+        .loader-title { font-size: 5rem; letter-spacing: 20px; font-weight: 200; color: #111; margin-bottom: 60px; text-transform: uppercase; }
+        .dot { display: inline-block; animation: oscillate 1.4s infinite; }
+        @keyframes oscillate { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(15px); opacity: 1; color: #ff4b2b; } }
+        .loader-container { width: 80%; height: 30px; background: rgba(0,0,0,0.08); border-radius: 15px; overflow: hidden; }
+        #loader-fill { width: 0%; height: 100%; background: #ff4b2b; }
+        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); z-index: 20; transition: opacity 0.4s; }
+        .title-init { font-size: 3rem; letter-spacing: 8px; font-weight: 200; text-transform: uppercase; border-right: 4px solid #ff4b2b; white-space: nowrap; overflow: hidden; }
         .animate-type { animation: typing 2.2s steps(15, end) forwards; width: 0; }
-        
         @keyframes typing { from { width: 0 } to { width: 100% } }
-        @keyframes blink { from, to { border-color: transparent } 50% { border-color: #ff4b2b } }
-
-        #instructions p { font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: opacity 0.5s ease; }
+        #instructions p { font-size: 0.9rem; margin: 8px 0; letter-spacing: 2px; color: #555; opacity: 0; transition: 0.5s; }
         .show-p { opacity: 1 !important; }
-
-        .start-prompt {
-            position: relative; margin-top: 40px !important; font-weight: bold !important; 
-            color: #ff4b2b !important; cursor: pointer; padding: 12px 40px; 
-            letter-spacing: 5px; transition: all 0.2s ease;
-        }
-        .start-prompt:hover { color: #fff !important; background: #ff4b2b; border-radius: 4px; }
-        .start-prompt::before, .start-prompt::after { content: ""; position: absolute; opacity: 0; transition: all 0.2s ease; }
-        .start-prompt::before { content: "["; left: 10px; }
-        .start-prompt::after { content: "]"; right: 10px; }
-        .start-prompt:hover::before { opacity: 1; left: 20px; color: #fff; }
-        .start-prompt:hover::after { opacity: 1; right: 20px; color: #fff; }
-
-        .ready-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
+        .start-prompt { margin-top: 40px !important; font-weight: bold !important; color: #ff4b2b !important; cursor: pointer; letter-spacing: 5px; }
         #vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
-        
-        /* --- BLUR OVERLAY --- */
-        #blur-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 6; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
-            mask-image: radial-gradient(circle, transparent 0%, black 100%);
-            -webkit-mask-image: radial-gradient(circle, transparent 0%, black 100%);
-            opacity: 0; transition: opacity 0.1s ease;
-        }
-
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%; pointer-events: none; z-index: 10; mix-blend-mode: difference; }
+        #blur-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; opacity: 0; transition: 0.1s; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #fff; border-radius: 50%; mix-blend-mode: difference; z-index: 10; }
         #hud-container { position: absolute; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
-        .stat-wrapper { background: rgba(0, 0, 0, 0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
-        .bar-container { width: 200px; height: 6px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
-        .bar-fill { width: 100%; height: 100%; transition: width 0.3s ease; }
-        
-        /* --- COOLDOWN BAR STYLING --- */
-        #cd-wrapper { padding: 4px 15px; border-radius: 6px; margin-bottom: -4px; }
-        #cd-bar-container { height: 3px; margin-top: 0; }
-        #cd-fill { background: #ffea00; box-shadow: 0 0 5px rgba(255, 234, 0, 0.5); }
-
+        .stat-wrapper { background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.05); }
+        .bar-container { width: 200px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+        .bar-fill { width: 100%; height: 100%; transition: width 0.3s; }
+        #cd-fill { background: #ffea00; }
         #health-fill { background: #ff416c; }
         #stamina-fill { background: #6dd5ed; }
-        .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; color: white; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: opacity 0.4s ease; }
-        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0, 0, 0, 0.7); padding: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .inv-header { font-size: 2.2rem; letter-spacing: 10px; font-weight: 200; text-transform: uppercase; margin-bottom: 35px; border-left: 5px solid #ff4b2b; padding-left: 20px; }
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-height: 400px; }
-        .inv-slot { aspect-ratio: 1/1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .inv-slot:hover { border-color: #ff4b2b; }
-        .inv-slot.active { border: 2px solid #ff4b2b; background: rgba(255, 75, 43, 0.1); }
-        .item-dot { width: 14px; height: 14px; border-radius: 50%; filter: drop-shadow(0 0 8px currentColor); }
-        .inv-right { flex: 0.7; background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 30px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
-        #inv-item-name { font-size: 1.1rem; font-weight: 800; color: #ff4b2b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 3px; }
-        #inv-item-desc { font-size: 0.8rem; line-height: 1.7; color: rgba(255,255,255,0.6); text-transform: uppercase; }
-        #inv-close-btn { position: absolute; top: 15px; right: 15px; color: rgba(255,255,255,0.4); font-size: 0.65rem; letter-spacing: 3px; cursor: pointer; text-transform: uppercase; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 4px; }
+        .stat-label { color: white; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px; }
+        #inventory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(20px); z-index: 30; opacity: 0; transition: 0.4s; }
+        .inventory-window { position: relative; width: 850px; height: 580px; display: flex; gap: 30px; background: rgba(0,0,0,0.7); padding: 40px; border-radius: 12px; color: white; }
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .inv-slot { aspect-ratio: 1/1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .inv-slot.active { border: 2px solid #ff4b2b; }
+        .item-dot { width: 14px; height: 14px; border-radius: 50%; }
     </style>
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
+    <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }</script>
 </head>
 <body>
-    <div id="loading-screen">
-        <div class="loader-title">
-            Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-        </div>
-        <div class="loader-container"><div id="loader-fill"></div></div>
-    </div>
-
-    <div id="vignette"></div>
-    <div id="blur-overlay"></div>
-    <div id="crosshair"></div>
-    
-    <div id="instructions">
-        <div class="title-container">
-            <h1 id="menu-title" class="title-init cursor-blink">MEGA DISTRICT</h1>
-        </div>
-        <div id="menu-content">
-            <p>WASD — MOVE</p>
-            <p>SHIFT — SPRINT</p>
-            <p>CTRL — SLIDE (1s)</p>
-            <p>SPACE — JUMP (HEAVY)</p>
-            <p>TAB — INVENTORY</p>
-            <p>F — TOGGLE FULLSCREEN</p>
-            <p class="start-prompt" id="start-btn">CLICK TO BEGIN</p>
-        </div>
-    </div>
-
+    <div id="loading-screen"><div class="loader-title">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div><div class="loader-container"><div id="loader-fill"></div></div></div>
+    <div id="vignette"></div><div id="blur-overlay"></div><div id="crosshair"></div>
+    <div id="instructions"><div class="title-container"><h1 id="menu-title" class="title-init">MEGA DISTRICT</h1></div><div id="menu-content"><p>WASD — MOVE</p><p>SHIFT — SPRINT</p><p>CTRL — SLIDE (1s)</p><p>SPACE — JUMP (HEAVY)</p><p>TAB — INVENTORY</p><p class="start-prompt" id="start-btn">CLICK TO BEGIN</p></div></div>
     <div id="hud-container">
-        <div class="stat-wrapper" id="cd-wrapper">
-            <div class="stat-label" style="font-size: 7px;"><span>Maneuver Ready</span></div>
-            <div class="bar-container" id="cd-bar-container"><div id="cd-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Health</span><span id="health-val">100 / 100</span></div>
-            <div class="bar-container"><div id="health-fill" class="bar-fill"></div></div>
-        </div>
-        <div class="stat-wrapper">
-            <div class="stat-label"><span>Stamina</span><span id="stamina-val">100 / 100</span></div>
-            <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div>
-        </div>
+        <div class="stat-wrapper"><div class="stat-label"><span>Maneuver</span></div><div class="bar-container"><div id="cd-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="stat-label"><span>Health</span><span id="health-val">100</span></div><div class="bar-container"><div id="health-fill" class="bar-fill"></div></div></div>
+        <div class="stat-wrapper"><div class="stat-label"><span>Stamina</span><span id="stamina-val">100</span></div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div></div></div>
     </div>
-
-    <div id="inventory-overlay">
-        <div class="inventory-window">
-            <div id="inv-close-btn">[ RETURN_TO_SYSTEM ]</div>
-            <div style="flex: 1.2; display: flex; flex-direction: column;">
-                <div class="inv-header">Cargo</div>
-                <div class="inv-grid" id="inv-grid-container"></div>
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
-            </div>
-        </div>
-    </div>
+    <div id="inventory-overlay"><div class="inventory-window"><div id="inv-grid-container" class="inv-grid"></div><div class="inv-right"><h2 id="inv-item-name">EMPTY</h2><p id="inv-item-desc">Select node.</p><button id="inv-close-btn">CLOSE</button></div></div></div>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        /* --- BASELINE CORE V23 GLOBALS --- */
         let camera, scene, renderer, controls, cameraGroup;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
-        let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
-        let prevTime = performance.now();
-        let bobTimer = 0;
-        let health = 100, stamina = 100;
-        let leftUpper, rightUpper, leftFore, rightFore;
-        const collidableBoxes = []; 
-        const playerSize = 0.7;
-        let isInventoryOpen = false;
+        let velocity = new THREE.Vector3(), direction = new THREE.Vector3(), prevTime = performance.now();
+        let health = 100, stamina = 100, isSliding = false, slideTimer = 0, slideCooldown = 0, isInventoryOpen = false;
+        const collidableBoxes = [], playerSize = 0.7;
 
-        let playMenuClick = () => {};
-        let playHoverSound = () => {};
-
-        /* --- MANEUVER PARAMS --- */
-        let isSliding = false;
-        let slideTimer = 0;
-        let slideCooldown = 0;
-        const slideMaxDuration = 1.0; 
-        const slideMaxCooldown = 5.0; 
-        const baseFOV = 75;
-        const warpFOV = 95;
-        const blurElem = document.getElementById('blur-overlay');
-        const cdFill = document.getElementById('cd-fill');
-
-        function startLoading() {
-            const fill = document.getElementById('loader-fill');
-            const screen = document.getElementById('loading-screen');
-            const menu = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const paragraphs = document.querySelectorAll('#menu-content p');
-            let progress = 0;
-
-            const interval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    menu.style.display = 'flex';
-                    setTimeout(() => {
-                        menu.style.opacity = '1';
-                        screen.style.opacity = '0';
-                        title.classList.add('animate-type');
-                        setTimeout(() => {
-                            paragraphs.forEach((p, i) => {
-                                setTimeout(() => {
-                                    p.classList.add('show-p');
-                                    if(p.id === 'start-btn') p.classList.add('ready-pulse');
-                                }, i * 120);
-                            });
-                        }, 2200);
-                        setTimeout(() => screen.style.display = 'none', 800);
-                    }, 400);
-                }
-                fill.style.width = progress + '%';
-            }, 40);
+        function createTexture(w, h, color, dots) {
+            const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d'); ctx.fillStyle = color; ctx.fillRect(0,0,w,h);
+            for(let i=0; i<dots; i++) { ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.1})`; ctx.fillRect(Math.random()*w, Math.random()*h, 1, 1); }
+            return new THREE.CanvasTexture(canvas);
         }
 
-        function createStonyTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#999999';
-            context.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 30000; i++) {
-                const x = Math.random() * 512; const y = Math.random() * 512;
-                const shade = Math.floor(Math.random() * 20) + 140; 
-                context.fillStyle = `rgba(${shade},${shade},${shade}, 0.4)`;
-                context.fillRect(x, y, 1, 1);
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0xdddddd);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            cameraGroup = new THREE.Group(); cameraGroup.add(camera); scene.add(cameraGroup);
+            scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5));
+            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new PointerLockControls(cameraGroup, document.body);
+            document.getElementById('start-btn').onclick = () => controls.lock();
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshPhongMaterial({ map: createTexture(512,512,'#999',30000) }));
+            floor.rotation.x = -Math.PI/2; scene.add(floor);
+
+            for (let i = 0; i < 70; i++) {
+                const h = 10 + Math.random() * 20, w = 8 + Math.random() * 8;
+                const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                b.position.set(Math.random()*150-75, h/2, Math.random()*150-75);
+                scene.add(b); collidableBoxes.push(new THREE.Box3().setFromObject(b));
             }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(18, 18);
-            return texture;
-        }
 
-        function createLightTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#f7f7f7';
-            context.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < 15000; i++) {
-                const x = Math.random() * 256; const y = Math.random() * 256;
-                const opacity = Math.random() * 0.05;
-                context.fillStyle = `rgba(0,0,0,${opacity})`;
-                context.fillRect(x, y, 1, 1);
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
+            document.addEventListener('keydown', e => {
+                if(e.code==='KeyW') moveForward=true; if(e.code==='KeyS') moveBackward=true;
+                if(e.code==='KeyA') moveLeft=true; if(e.code==='KeyD') moveRight=true;
+                if(e.code==='ShiftLeft') isRunning=true;
+                if(e.code==='Space' && canJump) { velocity.y += 22; canJump = false; }
+                if(e.code==='ControlLeft' && canJump && !isSliding && slideCooldown <= 0) { isSliding = true; slideTimer = 1.0; slideCooldown = 5.0; }
+                if(e.code==='Tab') { e.preventDefault(); toggleInventory(); }
+            });
+            document.addEventListener('keyup', e => {
+                if(e.code==='KeyW') moveForward=false; if(e.code==='KeyS') moveBackward=false;
+                if(e.code==='KeyA') moveLeft=false; if(e.code==='KeyD') moveRight=false;
+                if(e.code==='ShiftLeft') isRunning=false;
+            });
 
-        function createBuilding(x, z) {
-            const w = 12 + Math.random() * 8;
-            const h = 10 + Math.random() * 15;
-            const d = 12 + Math.random() * 8;
-            const baseGeo = new THREE.BoxGeometry(w, h, d);
-            const baseMat = new THREE.MeshPhongMaterial({ map: createLightTexture(), color: 0xffffff });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.set(x, h/2, z);
-            scene.add(base);
-            collidableBoxes.push(new THREE.Box3().setFromObject(base));
-            const roofGeo = new THREE.BoxGeometry(w + 1, 1, d + 1);
-            const roofMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
-            const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.set(x, h + 0.5, z);
-            scene.add(roof);
+            cameraGroup.position.set(0, 5, 0);
+            animate();
+            startLoading();
         }
 
         function resolveCollisions() {
             const playerBox = new THREE.Box3().setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
-            for (let box of collidableBoxes) {
+            collidableBoxes.forEach(box => {
                 if (playerBox.intersectsBox(box)) {
-                    const overlapX = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
-                    const overlapZ = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
-                    if (overlapX < overlapZ) {
-                        cameraGroup.position.x += overlapX * (cameraGroup.position.x > (box.min.x + box.max.x) / 2 ? 1 : -1);
-                        velocity.x = 0;
-                    } else {
-                        cameraGroup.position.z += overlapZ * (cameraGroup.position.z > (box.min.z + box.max.z) / 2 ? 1 : -1);
-                        velocity.z = 0;
-                    }
-                    playerBox.setFromCenterAndSize(cameraGroup.position, new THREE.Vector3(playerSize, 2, playerSize));
+                    const ox = Math.min(playerBox.max.x - box.min.x, box.max.x - playerBox.min.x);
+                    const oz = Math.min(playerBox.max.z - box.min.z, box.max.z - playerBox.min.z);
+                    if (ox < oz) cameraGroup.position.x += ox * (cameraGroup.position.x > (box.min.x + box.max.x)/2 ? 1 : -1);
+                    else cameraGroup.position.z += oz * (cameraGroup.position.z > (box.min.z + box.max.z)/2 ? 1 : -1);
                 }
-            }
+            });
         }
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xdddddd);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            cameraGroup = new THREE.Group();
-            cameraGroup.add(camera);
-            scene.add(cameraGroup);
-
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
-            scene.add(hemiLight);
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            sunLight.position.set(5, 10, 7.5);
-            scene.add(sunLight);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            const inst = document.getElementById('instructions');
-            const title = document.getElementById('menu-title');
-            const startBtn = document.getElementById('start-btn');
-            
-            controls = new PointerLockControls(cameraGroup, document.body);
-            
-            startBtn.addEventListener('mouseenter', () => playHoverSound());
-            startBtn.addEventListener('mousedown', () => controls.lock());
-            
-            controls.addEventListener('lock', () => {
-                inst.style.opacity = '0';
-                setTimeout(() => { if(controls.isLocked) inst.style.display = 'none'; }, 400);
-            });
-            
-            controls.addEventListener('unlock', () => {
-                if (!isInventoryOpen) {
-                    playMenuClick(); 
-                    title.classList.remove('animate-type');
-                    title.innerText = "PAUSED";
-                    inst.style.display = 'flex';
-                    setTimeout(() => inst.style.opacity = '1', 10);
-                }
-            });
-
-            const limbMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
-            const upperGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
-            const foreGeo = new THREE.CapsuleGeometry(0.1, 0.5, 4, 8);
-            leftUpper = new THREE.Mesh(upperGeo, limbMat);
-            leftFore = new THREE.Mesh(foreGeo, limbMat);
-            leftFore.position.set(0, -0.1, -0.35); 
-            leftUpper.add(leftFore);
-            leftUpper.position.set(-0.6, -1.0, 0.2); 
-            camera.add(leftUpper);
-            rightUpper = new THREE.Mesh(upperGeo, limbMat);
-            rightFore = new THREE.Mesh(foreGeo, limbMat);
-            rightFore.position.set(0, -0.1, -0.35);
-            rightUpper.add(rightFore);
-            rightUpper.position.set(0.6, -1.0, 0.2); 
-            camera.add(rightUpper);
-
-            const arena = 180;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(arena, arena), new THREE.MeshPhongMaterial({ map: createStonyTexture() }));
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-
-            const wallData = [{w:arena, h:15, d:2, x:0, z:90}, {w:arena, h:15, d:2, x:0, z:-90}, {w:2, h:15, d:arena, x:90, z:0}, {w:2, h:15, d:arena, x:-90, z:0}];
-            wallData.forEach(d => {
-                const w = new THREE.Mesh(new THREE.BoxGeometry(d.w, d.h, d.d), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
-                w.position.set(d.x, d.h/2, d.z);
-                scene.add(w);
-                collidableBoxes.push(new THREE.Box3().setFromObject(w));
-            });
-
-            for (let i = 0; i < 70; i++) {
-                let rx = Math.random() * 150 - 75;
-                let rz = Math.random() * 150 - 75;
-                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) rx += 30;
-                if (i % 3 === 0) createBuilding(rx, rz);
-                else {
-                    const h = Math.random() * 20 + 5;
-                    const p = new THREE.Mesh(new THREE.BoxGeometry(6, h, 6), new THREE.MeshPhongMaterial({ map: createLightTexture() }));
-                    p.position.set(rx, h/2, rz);
-                    scene.add(p);
-                    collidableBoxes.push(new THREE.Box3().setFromObject(p));
-                }
-            }
-
-            cameraGroup.position.set(0, 5, 0);
-
-            document.addEventListener('keydown', (e) => {
-                if (e.code === 'KeyW') moveForward = true;
-                if (e.code === 'KeyS') moveBackward = true;
-                if (e.code === 'KeyA') moveLeft = true;
-                if (e.code === 'KeyD') moveRight = true;
-                if (e.code === 'ShiftLeft') isRunning = true;
-                if (e.code === 'Space' && canJump) { velocity.y += 22; canJump = false; } 
-                if (e.code === 'KeyF') {
-                    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-                    else document.exitFullscreen();
-                }
-                if (e.code === 'Tab') { e.preventDefault(); toggleInventory(); }
-                
-                if (e.code === 'ControlLeft' && canJump && !isSliding && slideCooldown <= 0) {
-                    const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                    if (isMoving) {
-                        isSliding = true;
-                        slideTimer = slideMaxDuration;
-                        slideCooldown = slideMaxCooldown; 
-                        blurElem.style.opacity = '1';
-                    }
-                }
-            });
-            document.addEventListener('keyup', (e) => {
-                if (e.code === 'KeyW') moveForward = false;
-                if (e.code === 'KeyS') moveBackward = false;
-                if (e.code === 'KeyA') moveLeft = false;
-                if (e.code === 'KeyD') moveRight = false;
-                if (e.code === 'ShiftLeft') isRunning = false;
-                if (e.code === 'ControlLeft') isSliding = false;
-            });
-
-            setupInventoryLogic();
-            startLoading();
-        }
-
-        window.animate = function() {
-            requestAnimationFrame(window.animate);
-            const time = performance.now();
-            const delta = (time - prevTime) / 1000;
-
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = (performance.now() - prevTime) / 1000;
             if (controls.isLocked) {
-                velocity.x -= velocity.x * 12.0 * delta;
-                velocity.z -= velocity.z * 12.0 * delta;
-                velocity.y -= 9.8 * 5.0 * delta; 
-                
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
+                velocity.x -= velocity.x * 12 * delta; velocity.z -= velocity.z * 12 * delta; velocity.y -= 9.8 * 5 * delta;
+                direction.z = Number(moveForward) - Number(moveBackward); direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                const isMoving = moveForward || moveBackward || moveLeft || moveRight;
-                
-                if (isRunning && isMoving && stamina > 0) {
-                    stamina = Math.max(0, stamina - 15 * delta);
-                } else {
-                    stamina = Math.min(100, stamina + 30 * delta);
-                }
+                stamina = isRunning && (moveForward||moveLeft) ? Math.max(0, stamina - 15*delta) : Math.min(100, stamina + 30*delta);
                 document.getElementById('stamina-fill').style.width = stamina + '%';
-                document.getElementById('stamina-val').textContent = `${Math.round(stamina)} / 100`;
-
-                if (slideCooldown > 0) slideCooldown -= delta;
-                cdFill.style.width = (100 - ((Math.max(0, slideCooldown) / slideMaxCooldown) * 100)) + '%';
 
                 if (isSliding && slideTimer > 0) {
-                    slideTimer -= delta;
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.2, 0.15);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, warpFOV, 0.05);
-                    camera.updateProjectionMatrix();
-                    
-                    const slideSpeed = 420.0;
-                    if (moveForward || moveBackward) velocity.z -= direction.z * slideSpeed * delta;
-                    if (moveLeft || moveRight) velocity.x -= direction.x * slideSpeed * delta;
-                    
-                    if (slideTimer <= 0) { isSliding = false; blurElem.style.opacity = '0'; }
+                    slideTimer -= delta; cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3, 0.1);
+                    velocity.z -= direction.z * 400 * delta; velocity.x -= direction.x * 400 * delta;
+                    if (slideTimer <= 0) isSliding = false;
                 } else {
-                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5.0, 0.1);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.1);
-                    camera.updateProjectionMatrix();
-                    blurElem.style.opacity = '0';
-                    const speed = (isRunning && stamina > 0) ? 220.0 : 130.0;
-                    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+                    cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 5, 0.1);
+                    const s = (isRunning && stamina > 0) ? 220 : 130;
+                    velocity.z -= direction.z * s * delta; velocity.x -= direction.x * s * delta;
                 }
-
-                controls.moveForward(-velocity.z * delta);
-                controls.moveRight(-velocity.x * delta);
-                cameraGroup.position.y += (velocity.y * delta);
                 
-                if (cameraGroup.position.y < 5) { 
-                    if (velocity.y < -18 && window.playHeavyThud) window.playHeavyThud(); 
-                    velocity.y = 0; cameraGroup.position.y = 5; canJump = true; 
-                }
-
+                controls.moveForward(-velocity.z * delta); controls.moveRight(-velocity.x * delta);
+                cameraGroup.position.y += velocity.y * delta;
+                if (cameraGroup.position.y < 5) { velocity.y = 0; cameraGroup.position.y = 5; canJump = true; }
                 resolveCollisions();
-
-                if (canJump && isMoving && !isSliding) {
-                    const actualRunning = isRunning && stamina > 0;
-                    bobTimer += delta * (actualRunning ? 14 : 8);
-                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
-                    leftUpper.rotation.x = Math.sin(bobTimer) * 0.2;
-                    rightUpper.rotation.x = Math.cos(bobTimer) * 0.2;
-                } else if (!isSliding) {
-                    leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
-                }
             }
-            prevTime = time;
+            prevTime = performance.now();
             renderer.render(scene, camera);
         }
 
-        function setupInventoryLogic() {
-            const grid = document.getElementById('inv-grid-container');
-            const items = [{ name: "Suture Kit", desc: "Medical nanites for structural repair.", color: "#ff416c" }, { name: "Stim-Shot", desc: "Instant stamina recharge.", color: "#6dd5ed" }, { name: "Key-Card", desc: "District level 4 access.", color: "#ffffff" }];
-            for (let i = 0; i < 16; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'inv-slot';
-                if (items[i]) {
-                    const dot = document.createElement('div');
-                    dot.className = 'item-dot'; dot.style.backgroundColor = items[i].color;
-                    slot.appendChild(dot);
-                }
-                slot.onclick = () => {
-                    playMenuClick(); 
-                    document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('active'));
-                    slot.classList.add('active');
-                    const data = items[i] || { name: "EMPTY_NODE", desc: "No physical assets detected." };
-                    document.getElementById('inv-item-name').innerText = data.name;
-                    document.getElementById('inv-item-desc').innerText = data.desc;
-                };
-                slot.addEventListener('mouseenter', () => playHoverSound());
-                grid.appendChild(slot);
-            }
-            document.getElementById('inv-close-btn').onclick = toggleInventory;
-        }
-
         function toggleInventory() {
-            playMenuClick();
             const overlay = document.getElementById('inventory-overlay');
             isInventoryOpen = !isInventoryOpen;
-            if (isInventoryOpen) {
-                controls.unlock();
-                overlay.style.display = 'flex';
-                setTimeout(() => overlay.style.opacity = '1', 10);
-            } else {
-                overlay.style.opacity = '0';
-                setTimeout(() => { if(!isInventoryOpen) overlay.style.display = 'none'; }, 400);
-                controls.lock();
-            }
+            overlay.style.display = isInventoryOpen ? 'flex' : 'none';
+            overlay.style.opacity = isInventoryOpen ? '1' : '0';
+            if(isInventoryOpen) controls.unlock(); else controls.lock();
+        }
+
+        function startLoading() {
+            let p = 0; const f = document.getElementById('loader-fill');
+            const int = setInterval(() => { p += 2; f.style.width = p+'%'; if(p>=100) { clearInterval(int); document.getElementById('loading-screen').style.opacity=0; document.getElementById('instructions').style.display='flex'; setTimeout(()=>document.getElementById('instructions').style.opacity=1,100); document.querySelectorAll('#instructions p').forEach(el=>el.classList.add('show-p')); } }, 30);
         }
 
         init();
-        window.animate();
-
-        /* --- ENVIRONMENTAL AUDIO ENGINE --- */
-        (function() {
-            let audioListener, districtWind, birds;
-            let isPlaying = false;
-
-            const setupEnvironment = () => {
-                audioListener = new THREE.AudioListener();
-                camera.add(audioListener);
-
-                districtWind = new THREE.Audio(audioListener);
-                const ctx = audioListener.context;
-                const bufferSize = 2 * ctx.sampleRate;
-                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-
-                districtWind.setBuffer(noiseBuffer);
-                districtWind.setLoop(true);
-                districtWind.setVolume(0);
-
-                const windFilter = ctx.createBiquadFilter();
-                windFilter.type = 'lowpass';
-                windFilter.frequency.value = 250; 
-                districtWind.setFilter(windFilter);
-
-                birds = new THREE.Audio(audioListener);
-                const birdOsc = ctx.createOscillator();
-                const birdGain = ctx.createGain();
-                birdGain.gain.value = 0;
-            };
-
-            const originalAnimateAudio = animate;
-            animate = function() {
-                originalAnimateAudio(); 
-                if (controls.isLocked) {
-                    if (!isPlaying) {
-                        if (!audioListener) setupEnvironment();
-                        districtWind.play();
-                        isPlaying = true;
-                    }
-                    const currentSpeed = (Math.abs(velocity.x) + Math.abs(velocity.z)) / 150;
-                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0.45 + Math.min(currentSpeed, 0.3), 0.03));
-                } else if (isPlaying) {
-                    districtWind.setVolume(THREE.MathUtils.lerp(districtWind.getVolume(), 0, 0.1));
-                    if (districtWind.getVolume() < 0.01) {
-                        districtWind.pause();
-                        isPlaying = false;
-                    }
-                }
-            };
-
-            playMenuClick = () => {
-                if (!audioListener) return;
-                const ctx = audioListener.context;
-                const gOsc = ctx.createOscillator();
-                const gGain = ctx.createGain();
-                gOsc.type = 'sine';
-                gOsc.frequency.setValueAtTime(200, ctx.currentTime);
-                gGain.gain.setValueAtTime(0.4, ctx.currentTime);
-                gGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                gOsc.connect(gGain);
-                gGain.connect(ctx.destination);
-                gOsc.start();
-                gOsc.stop(ctx.currentTime + 0.12);
-            };
-
-            playHoverSound = () => {
-                if (!audioListener) return;
-                const ctx = audioListener.context;
-                const wOsc = ctx.createOscillator();
-                const wGain = ctx.createGain();
-                wOsc.type = 'triangle';
-                wOsc.frequency.setValueAtTime(600, ctx.currentTime);
-                wGain.gain.setValueAtTime(0.08, ctx.currentTime);
-                wGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-                wOsc.connect(wGain);
-                wGain.connect(ctx.destination);
-                wOsc.start();
-                wOsc.stop(ctx.currentTime + 0.07);
-            };
-        })();
-
-        /* --- SAND SLIDE AUDIO ENGINE --- */
-        (function() {
-            let slideGain;
-            const setupSlideSound = () => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const bufferSize = audioCtx.sampleRate * 2;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-                const slideNoise = audioCtx.createBufferSource();
-                slideNoise.buffer = buffer;
-                slideNoise.loop = true;
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = 1800; 
-                filter.Q.value = 1.5;
-
-                slideGain = audioCtx.createGain();
-                slideGain.gain.value = 0;
-
-                slideNoise.connect(filter);
-                filter.connect(slideGain);
-                slideGain.connect(audioCtx.destination);
-                slideNoise.start();
-            };
-
-            const originalAnimateSlide = animate;
-            animate = function() {
-                originalAnimateSlide();
-                if (!slideGain) setupSlideSound();
-                const targetVol = isSliding ? 0.4 : 0;
-                slideGain.gain.setTargetAtTime(targetVol, slideGain.context.currentTime, 0.05);
-            };
-        })();
-
-        /* --- HEAVY LANDING ENGINE --- */
-        (function() {
-            window.playHeavyThud = () => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                const lowFilter = audioCtx.createBiquadFilter();
-
-                lowFilter.type = 'lowpass';
-                lowFilter.frequency.value = 80;
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-
-                gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-
-                osc.connect(lowFilter);
-                lowFilter.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.25);
-            };
-        })();
-
-        /* --- PARALLEL ATMOSPHERIC & SHADOW ENGINE --- */
-        (function() {
-            let skyMesh, cloudOverlay, sunLight;
-            
-            const initAtmosphere = () => {
-                // 1. Overcast Sky Sphere
-                const skyGeo = new THREE.SphereGeometry(450, 32, 32);
-                const skyMat = new THREE.MeshBasicMaterial({
-                    color: 0x9fb1bd, // Cool overcast blue-grey
-                    side: THREE.BackSide,
-                    fog: false
-                });
-                skyMesh = new THREE.Mesh(skyGeo, skyMat);
-                window.scene.add(skyMesh);
-
-                // 2. Procedural Cloud Layer
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024; canvas.height = 1024;
-                const ctx = canvas.getContext('2d');
-                
-                // Generate Puffy Cloud Texture
-                for(let i = 0; i < 40; i++) {
-                    const x = Math.random() * 1024;
-                    const y = Math.random() * 1024;
-                    const rad = 100 + Math.random() * 150;
-                    const grad = ctx.createRadialGradient(x, y, 0, x, y, rad);
-                    grad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-                    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
-                }
-
-                const cloudTex = new THREE.CanvasTexture(canvas);
-                cloudTex.wrapS = cloudTex.wrapT = THREE.RepeatWrapping;
-                
-                const cloudGeo = new THREE.PlaneGeometry(1000, 1000);
-                const cloudMat = new THREE.MeshBasicMaterial({
-                    map: cloudTex,
-                    transparent: true,
-                    opacity: 0.8,
-                    depthWrite: false,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                cloudOverlay = new THREE.Mesh(cloudGeo, cloudMat);
-                cloudOverlay.position.y = 150;
-                cloudOverlay.rotation.x = Math.PI / 2;
-                window.scene.add(cloudOverlay);
-
-                // 3. Shadow Projection (Directional Light with Cloud Mask)
-                sunLight = new THREE.DirectionalLight(0xffffff, 0.4);
-                sunLight.position.set(50, 200, 50);
-                sunLight.castShadow = true;
-                
-                // Shadow Mapping settings
-                sunLight.shadow.mapSize.width = 2048;
-                sunLight.shadow.mapSize.height = 2048;
-                sunLight.shadow.camera.left = -200;
-                sunLight.shadow.camera.right = 200;
-                sunLight.shadow.camera.top = 200;
-                sunLight.shadow.camera.bottom = -200;
-                sunLight.shadow.blurSamples = 25;
-                sunLight.shadow.radius = 10;
-                
-                window.scene.add(sunLight);
-                window.renderer.shadowMap.enabled = true;
-                window.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-                // Apply shadow receiving to all baseline objects found in scene
-                window.scene.traverse((obj) => {
-                    if (obj.isMesh) {
-                        obj.castShadow = true;
-                        obj.receiveShadow = true;
-                    }
-                });
-            };
-
-            const updateAtmosphere = () => {
-                const time = performance.now() * 0.0001;
-                
-                if(cloudOverlay) {
-                    // Drift the clouds for kinetic movement
-                    cloudOverlay.material.map.offset.x = time * 0.2;
-                    cloudOverlay.material.map.offset.y = time * 0.1;
-                    
-                    // Subtle sun pulse
-                    const sunIntensity = 0.3 + Math.sin(time * 5) * 0.1;
-                    sunLight.intensity = sunIntensity;
-                }
-            };
-
-            // Wrap the baseline animate function
-            const originalAnimateFinal = window.animate;
-            window.animate = function() {
-                if (!skyMesh && window.scene) initAtmosphere(); 
-                updateAtmosphere();
-                originalAnimateFinal();
-            };
-
-        })();
     </script>
 </body>
 </html>
