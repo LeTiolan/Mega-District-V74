@@ -188,16 +188,6 @@
         <div id="boot-msg" style="margin-top:20px; font-size:9px; color:#444;">AWAITING NEURAL HARDWARE...</div>
     </div>
 
-            </div>
-            <div class="inv-right">
-                <div style="font-size: 0.6rem; color: #ff4b2b; letter-spacing: 2px; margin-bottom: 8px; font-weight: bold;">MANIFEST_LINK</div>
-                <div id="inv-item-name">NO_SELECTION</div>
-                <div style="width: 40px; height: 2px; background: #ff4b2b; margin-bottom: 20px;"></div>
-                <div id="inv-item-desc">Awaiting hardware link. Select a storage node to initialize data stream.</div>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -883,6 +873,8 @@ const springTether = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), k: 12
 document.getElementById('start-btn').addEventListener('click', () => {
     const ui = document.getElementById('neural-pairing-ui');
     ui.style.display = 'block';
+    // This hides the "Click to Begin" text
+    document.getElementById('instructions').style.display = 'none';
     setTimeout(() => ui.style.opacity = '1', 50);
 });
 
@@ -890,13 +882,24 @@ document.getElementById('start-btn').addEventListener('click', () => {
 document.getElementById('glb-upload').onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Reset previous data if any
+    if (robotModel) scene.remove(robotModel);
+    limbSensors = [];
+    visorParts = [];
     
-    new GLTFLoader().load(URL.createObjectURL(file), (gltf) => {
+    const loader = new GLTFLoader();
+    loader.load(URL.createObjectURL(file), (gltf) => {
         robotModel = gltf.scene;
-        const b3 = new THREE.Box3().setFromObject(robotModel);
-        const scale = 7.0 / b3.getSize(new THREE.Vector3()).y;
-        robotModel.scale.set(scale, scale, scale);
         
+        // Setup Scaling
+        const b3 = new THREE.Box3().setFromObject(robotModel);
+        const size = b3.getSize(new THREE.Vector3());
+        const scale = 7.0 / size.y;
+        robotModel.scale.set(scale, scale, scale);
+        robotModel.position.set(0, 0, 0);
+
+        // Identify Parts
         robotModel.traverse(n => {
             if (n.isMesh) {
                 limbSensors.push({ mesh: n, box: new THREE.Box3(), isColliding: false });
@@ -904,36 +907,49 @@ document.getElementById('glb-upload').onchange = (e) => {
             }
         });
 
+        // Setup Neural Audio
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(40, audioCtx.currentTime);
         g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        osc.connect(g); g.connect(audioCtx.destination);
+        osc.connect(g); 
+        g.connect(audioCtx.destination);
         osc.start();
 
+        // Start Loading Simulation
         let progress = 0;
         const syncInt = setInterval(() => {
             progress++;
             document.getElementById('sync-fill').style.width = progress + "%";
             osc.frequency.setTargetAtTime(40 + (progress * 0.6), audioCtx.currentTime, 0.1);
+            
             if (progress >= 100) {
                 clearInterval(syncInt);
+                
+                // Finalize Link
                 document.getElementById('neural-pairing-ui').innerHTML = `<div class="neural-active-text">Neural Link Activated</div>`;
                 document.getElementById('halo-visor').classList.add('visor-glitch');
+                
                 osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.5);
                 g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+
+                // Add to World and Hide UI
+                scene.add(robotModel);
+                
                 setTimeout(() => { 
                     osc.stop(); 
                     document.getElementById('neural-pairing-ui').classList.add('flicker-out');
                     document.getElementById('boot-overlay').classList.add('flicker-out');
+                    
+                    // Allow player to move mouse
+                    if (controls) controls.lock();
                 }, 1200);
             }
         }, 50);
-        scene.add(robotModel);
     });
 };
-
+        
 // 3. Independent Physics Loop
 function neuralLoop() {
     requestAnimationFrame(neuralLoop);
