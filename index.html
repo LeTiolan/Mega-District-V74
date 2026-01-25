@@ -104,7 +104,23 @@
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
+          /* --- NEURAL MODULE STYLES --- */
+        #boot-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 150; pointer-events: none; opacity: 1; transition: opacity 5s ease; }
+        #neural-pairing-ui {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 160; background: rgba(5,5,5,0.98); padding: 50px; width: 320px; 
+            border: 1px solid #00f2ff; color: white; text-align: center; display: none; opacity: 0; transition: opacity 0.5s;
+        }
+        #halo-visor { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 140; opacity: 0; transition: 2s; }
+        .arc-ui { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); width: 750px; height: 120px; border-top: 2px solid rgba(0, 242, 255, 0.4); border-radius: 50% 50% 0 0; }
+        .neural-active-text { font-size: 1.2rem; letter-spacing: 8px; color: #00f2ff; text-transform: uppercase; text-shadow: 0 0 15px rgba(0, 242, 255, 0.8); animation: textPulse 1.5s infinite; }
+        @keyframes textPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.98); } }
+        .flicker-out { animation: screenFlicker 0.8s ease-out forwards; }
+        @keyframes screenFlicker { 0% { opacity: 1; backdrop-filter: blur(20px); } 10% { opacity: 0.3; } 40% { opacity: 1; } 100% { opacity: 0; backdrop-filter: blur(0px); visibility: hidden; } }
+        .visor-glitch { animation: visorPowerOn 1.2s ease-out; }
+        @keyframes visorPowerOn { 0% { opacity: 0; transform: translateX(-50%) scaleX(0); } 10% { opacity: 0.8; transform: translateX(-50%) scaleX(1.2); } 30% { opacity: 1; transform: translateX(-50%) scaleX(1); } }
+  
+</script>
 </head>
 <body>
     <div id="loading-screen">
