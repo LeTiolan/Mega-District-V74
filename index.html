@@ -844,6 +844,126 @@
                 scene.background.setHex(0xaaaaaa);
             };
         })();
+/* ============================================================
+   NEURAL LINK MODULE v1.0
+   ============================================================ */
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let robotModel = null;
+let limbSensors = []; 
+let visorParts = [];
+let springCamActive = false;
+const springTether = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), k: 12.0, d: 0.7 };
+
+// 1. Hook to Start Button
+document.getElementById('start-btn').addEventListener('click', () => {
+    const ui = document.getElementById('neural-pairing-ui');
+    ui.style.display = 'block';
+    setTimeout(() => ui.style.opacity = '1', 50);
+});
+
+// 2. Neural Boot & Sound
+document.getElementById('glb-upload').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    new GLTFLoader().load(URL.createObjectURL(file), (gltf) => {
+        robotModel = gltf.scene;
+        const b3 = new THREE.Box3().setFromObject(robotModel);
+        const scale = 7.0 / b3.getSize(new THREE.Vector3()).y;
+        robotModel.scale.set(scale, scale, scale);
+        
+        robotModel.traverse(n => {
+            if (n.isMesh) {
+                limbSensors.push({ mesh: n, box: new THREE.Box3(), isColliding: false });
+                if (n.name.toLowerCase().match(/head|face|eye|visor/)) visorParts.push(n);
+            }
+        });
+
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(40, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start();
+
+        let progress = 0;
+        const syncInt = setInterval(() => {
+            progress++;
+            document.getElementById('sync-fill').style.width = progress + "%";
+            osc.frequency.setTargetAtTime(40 + (progress * 0.6), audioCtx.currentTime, 0.1);
+            if (progress >= 100) {
+                clearInterval(syncInt);
+                document.getElementById('neural-pairing-ui').innerHTML = `<div class="neural-active-text">Neural Link Activated</div>`;
+                document.getElementById('halo-visor').classList.add('visor-glitch');
+                osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.5);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+                setTimeout(() => { 
+                    osc.stop(); 
+                    document.getElementById('neural-pairing-ui').classList.add('flicker-out');
+                    document.getElementById('boot-overlay').classList.add('flicker-out');
+                }, 1200);
+            }
+        }, 50);
+        scene.add(robotModel);
+    });
+};
+
+// 3. Independent Physics Loop
+function neuralLoop() {
+    requestAnimationFrame(neuralLoop);
+    if (!robotModel || !controls.isLocked) return;
+
+    robotModel.position.copy(cameraGroup.position);
+    robotModel.position.y -= 5; 
+    robotModel.rotation.y = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y + Math.PI;
+
+    robotModel.traverse(b => {
+        if (b.isBone && b.name.toLowerCase().includes("arm")) {
+            b.rotation.z = Math.sin(Date.now() * 0.005) * 0.1 + (velocity.x * 0.05);
+        }
+    });
+
+    limbSensors.forEach(s => {
+        s.box.setFromObject(s.mesh);
+        collidableBoxes.forEach(bb => {
+            if (s.box.intersectsBox(bb)) {
+                if (!s.isColliding) {
+                    const iOsc = audioCtx.createOscillator(); const iG = audioCtx.createGain();
+                    iOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
+                    iG.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                    iOsc.connect(iG); iG.connect(audioCtx.destination);
+                    iOsc.start(); iOsc.stop(audioCtx.currentTime + 0.2);
+                    s.isColliding = true;
+                }
+                if (s.mesh.parent.isBone) s.mesh.parent.rotation.x += 0.1;
+            } else { s.isColliding = false; }
+        });
+    });
+
+    if (springCamActive) {
+        const ideal = new THREE.Vector3(0, 5, 12).applyQuaternion(camera.quaternion).add(cameraGroup.position);
+        const f = new THREE.Vector3().subVectors(ideal, springTether.pos).multiplyScalar(springTether.k);
+        springTether.vel.add(f.multiplyScalar(0.016)).multiplyScalar(springTether.d);
+        springTether.pos.add(springTether.vel);
+        camera.position.copy(springTether.pos); camera.lookAt(robotModel.position);
+        visorParts.forEach(m => m.visible = true);
+    } else {
+        camera.position.set(0, 0, 0); visorParts.forEach(m => m.visible = false);
+    }
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyV' && robotModel) {
+        springCamActive = !springCamActive;
+        springTether.pos.copy(camera.position);
+    }
+});
+
+neuralLoop();
+
     </script>
 </body>
 </html>
