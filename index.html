@@ -565,7 +565,7 @@
                 }
 
                 // 3. Determine if sprinting is ACTUALLY allowed
-                let canSprint = isRunning && !isExhausted && stamina > 5;
+            canSprint = isRunning && !isExhausted && stamina > 5;
 
                 // 4. Calculate Stamina Drain/Regen
               if (canSprint && isMoving) {
