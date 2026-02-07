@@ -552,7 +552,8 @@
 
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
                 
-                if (isRunning && isMoving && stamina > 0) {
+            // Stamina Logic: Requires a 5 unit buffer to start sprinting
+                if (isRunning && isMoving && stamina > 5) {
                     stamina = Math.max(0, stamina - 15 * delta);
                 } else {
                     stamina = Math.min(100, stamina + 30 * delta);
@@ -589,7 +590,9 @@
                     camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.1);
                     camera.updateProjectionMatrix();
                     blurElem.style.opacity = '0';
-                    const speed = (isRunning && stamina > 10) ? 220.0 : 130.0;
+                    
+                    // Speed Logic: Reverts to walking speed immediately if stamina is 5 or less
+                    const speed = (isRunning && stamina > 5) ? 220.0 : 130.0;
                     if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                     if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
                 }
