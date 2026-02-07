@@ -774,14 +774,25 @@
                 osc.start(); noise.start(); osc.stop(ctx.currentTime + 0.25); noise.stop(ctx.currentTime + 0.25);
             };
 
-            const originalAnimatePhysics = animate;
+           const originalAnimatePhysics = animate;
             animate = function() {
                 originalAnimatePhysics();
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
+                
                 if (controls.isLocked && canJump && isMoving && !isSliding) {
                     const time = performance.now();
-                    const stepInterval = (isRunning && stamina > 0) ? 300 : 500; 
-                    if (time > nextStepTime) { playMetallicStep((isRunning && stamina > 0) ? 1.2 : 0.7); nextStepTime = time + stepInterval; }
+                    
+                    // Use our new master variable to decide if we sound like we are running
+                    const isActuallySprinting = canSprint; 
+
+                    // Set rhythm: 300ms for running, 500ms for walking
+                    const stepInterval = isActuallySprinting ? 300 : 500; 
+
+                    if (time > nextStepTime) { 
+                        // Set volume: 1.2 for running, 0.7 for walking
+                        playMetallicStep(isActuallySprinting ? 1.2 : 0.7); 
+                        nextStepTime = time + stepInterval; 
+                    }
                 }
             };
 
