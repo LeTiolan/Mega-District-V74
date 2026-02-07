@@ -568,11 +568,14 @@
                 let canSprint = isRunning && !isExhausted && stamina > 5;
 
                 // 4. Calculate Stamina Drain/Regen
-                if (canSprint && isMoving) {
-                    stamina = Math.max(0, stamina - 15 * delta);
-                } else {
-                    stamina = Math.min(100, stamina + 30 * delta);
-                }
+              if (canSprint && isMoving) {
+    // Draining stamina while sprinting
+    stamina = Math.max(0, stamina - 15 * delta);
+} else if (!isRunning) {
+    // ONLY recharge if the player is NOT holding the Shift key
+    stamina = Math.min(100, stamina + 30 * delta);
+}
+// Note: If isRunning is true but canSprint is false, stamina stays frozen.
 
                 // 5. Update UI
                 document.getElementById('stamina-fill').style.width = stamina + '%';
