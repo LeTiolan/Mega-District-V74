@@ -608,6 +608,16 @@
                     velocity.y = 0; cameraGroup.position.y = 5; canJump = true; 
                 }
                 if (cameraGroup.position.y < 3) { velocity.y = 0; cameraGroup.position.y = 3; }
+                // --- SPEED CLAMP: Forced Revert to Walking ---
+                const maxAllowedSpeed = (isRunning && stamina > 5) ? 220.0 : 130.0;
+                let currentVelocityMag = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+                
+                if (currentVelocityMag > maxAllowedSpeed && !isSliding) {
+                    let ratio = maxAllowedSpeed / currentVelocityMag;
+                    velocity.x *= ratio;
+                    velocity.z *= ratio;
+                }
+                // ----------------------------------------------
 
                 resolveCollisions();
 
