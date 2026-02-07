@@ -552,7 +552,7 @@
 
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
                 
-            // Stamina Logic: Requires a 5 unit buffer to start sprinting
+        // Stamina Logic: Requires a 5 unit buffer to start sprinting
                 if (isRunning && isMoving && stamina > 5) {
                     stamina = Math.max(0, stamina - 15 * delta);
                 } else {
@@ -591,8 +591,10 @@
                     camera.updateProjectionMatrix();
                     blurElem.style.opacity = '0';
                     
-                    // Speed Logic: Reverts to walking speed immediately if stamina is 5 or less
+                    // THE FIX: Re-calculate 'speed' every frame based on stamina
                     const speed = (isRunning && stamina > 5) ? 220.0 : 130.0;
+                    
+                    // APPLY speed to velocity
                     if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                     if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
                 }
