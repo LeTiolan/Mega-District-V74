@@ -554,11 +554,27 @@
                 const isMoving = moveForward || moveBackward || moveLeft || moveRight;
                 
         // Stamina Logic: Requires a 5 unit buffer to start sprinting
-                if (isRunning && isMoving && stamina > 5) {
+              // 1. Trip the exhaustion lock if stamina hits 5
+                if (stamina <= 5) {
+                    isExhausted = true;
+                }
+
+                // 2. Recovery Rule: Unlock only if Shift is released AND stamina is >= 45
+                if (!isRunning && stamina >= 45) { 
+                    isExhausted = false; 
+                }
+
+                // 3. Determine if sprinting is ACTUALLY allowed
+                let canSprint = isRunning && !isExhausted && stamina > 5;
+
+                // 4. Calculate Stamina Drain/Regen
+                if (canSprint && isMoving) {
                     stamina = Math.max(0, stamina - 15 * delta);
                 } else {
                     stamina = Math.min(100, stamina + 30 * delta);
                 }
+
+                // 5. Update UI
                 document.getElementById('stamina-fill').style.width = stamina + '%';
                 document.getElementById('stamina-val').textContent = `${Math.round(stamina)} / 100`;
 
@@ -593,7 +609,7 @@
                     blurElem.style.opacity = '0';
                     
                     // THE FIX: Re-calculate 'speed' every frame based on stamina
-                    const speed = (isRunning && stamina > 5) ? 220.0 : 130.0;
+                  const speed = canSprint ? 220.0 : 130.0;
                     
                     // APPLY speed to velocity
                     if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
@@ -610,7 +626,7 @@
                 }
                 if (cameraGroup.position.y < 3) { velocity.y = 0; cameraGroup.position.y = 3; }
                 // --- SPEED CLAMP: Forced Revert to Walking ---
-                const maxAllowedSpeed = (isRunning && stamina > 5) ? 220.0 : 130.0;
+                const maxAllowedSpeed = canSprint ? 220.0 : 130.0;
                 let currentVelocityMag = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
                 
                 if (currentVelocityMag > maxAllowedSpeed && !isSliding) {
