@@ -592,10 +592,51 @@ let slideInitialized = false;
 
                 if (isSliding && slideTimer > 0) {
                     slideTimer -= delta;
+
+                    // --- SLIDE SOUND LOGIC START ---
+                    if (!slideInitialized && camera.children[0]) {
+                        const audioCtx = camera.children[0].context;
+                        const bufferSize = audioCtx.sampleRate * 2;
+                        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        // Create "Sand" noise
+                        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                        
+                        slideNoise = audioCtx.createBufferSource();
+                        slideNoise.buffer = buffer; 
+                        slideNoise.loop = true;
+                        
+                        const sandFilter = audioCtx.createBiquadFilter();
+                        sandFilter.type = 'bandpass'; 
+                        sandFilter.frequency.value = 1200; 
+                        
+                        slideGain = audioCtx.createGain(); 
+                        slideGain.gain.value = 0;
+                        
+                        slideNoise.connect(sandFilter); 
+                        sandFilter.connect(slideGain); 
+                        slideGain.connect(audioCtx.destination);
+                        slideNoise.start();
+                        slideInitialized = true;
+                    }
+                    
+                    if (slideGain) {
+                        // Smoothly ramp volume UP to 0.3
+                        slideGain.gain.setTargetAtTime(0.3, camera.children[0].context.currentTime, 0.05);
+                    }
+                    // --- SLIDE SOUND LOGIC END ---
+
                     let slideProgress = 1 - (slideTimer / slideMaxDuration);
                     cameraGroup.position.y = THREE.MathUtils.lerp(cameraGroup.position.y, 3.0, 0.1);
-                    camera.fov = THREE.MathUtils.lerp(camera.fov, baseFOV, 0.05);
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, 85, 0.05); 
                     camera.updateProjectionMatrix();
+                } else {
+                    // --- TURN SOUND OFF ---
+                    if (slideGain) {
+                        // Smoothly ramp volume DOWN to 0
+                        slideGain.gain.setTargetAtTime(0, camera.children[0].context.currentTime, 0.1);
+                    }
+                }
                     
                     let blurAmount = 10 * (1 - slideProgress);
                     let centerClearance = 30 * (1 - slideProgress);
