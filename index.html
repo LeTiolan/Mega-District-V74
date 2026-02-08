@@ -334,6 +334,8 @@ let slideInitialized = false;
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
+            const listener = new THREE.AudioListener();
+            camera.add(listener);
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
@@ -878,24 +880,13 @@ let slideInitialized = false;
         })();
 
 
-            const originalAnimateSlide = animate;
-            animate = function() {
-                originalAnimateSlide();
-                // Ensure audio exists and starts once the player interacts
-                if (controls.isLocked) {
-                    if (!slideGain) setupSlideSound();
-                    const targetVol = isSliding ? 0.4 : 0;
-                    slideGain.gain.setTargetAtTime(targetVol, slideGain.context.currentTime, 0.05);
-                }
-            };
-        })();
-
-        /* --- ATMOSPHERIC OVERLAY --- */
+      /* --- ATMOSPHERIC OVERLAY --- */
         (function() {
             const cloudCount = 15;
             const clouds = [];
             const cloudGroup = new THREE.Group();
             scene.add(cloudGroup);
+            
             for(let i=0; i<cloudCount; i++) {
                 const cloudGeo = new THREE.SphereGeometry(15 + Math.random()*15, 8, 8);
                 const cloudMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, transparent: true, opacity: 0.4 });
@@ -905,6 +896,7 @@ let slideInitialized = false;
                 cloudGroup.add(cloud);
                 clouds.push(cloud);
             }
+
             window.updateAtmo = (time) => {
                 if(window.mainSun) {
                     const pulse = 1.1 + Math.sin(time * 0.0005) * 0.1;
@@ -917,6 +909,7 @@ let slideInitialized = false;
                 scene.background.setHex(0xaaaaaa);
             };
         })();
+        // The Atmospheric block is now safely sealed.
     </script>
 </body>
 </html>
