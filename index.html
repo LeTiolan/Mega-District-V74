@@ -762,13 +762,11 @@ let slideInitialized = false;
 
         /* --- SOUND SYSTEMS (UNCHANGED CORE) --- */
         (function() {
-            let districtWind, audioListener;
+           let districtWind;
             let isPlaying = false;
             let nextBirdTime = 0;
 
             const setupEnvironment = () => {
-                audioListener = new THREE.AudioListener();
-                camera.add(audioListener);
                 districtWind = new THREE.Audio(audioListener);
                 const ctx = audioListener.context;
                 const bufferSize = 2 * ctx.sampleRate;
