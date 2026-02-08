@@ -335,9 +335,9 @@ let slideInitialized = false;
             cameraGroup = new THREE.Group();
             cameraGroup.add(camera);
             scene.add(cameraGroup);
-            const listener = new THREE.AudioListener();
-            camera.add(listener);
-
+            audioListener = new THREE.AudioListener();
+            camera.add(audioListener);
+            
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 2.5);
             scene.add(hemiLight);
             
