@@ -860,16 +860,44 @@
             };
         })();
 
-        /* --- HEAVY LANDING ENGINE --- */
+    /* --- SAND SLIDE ENGINE --- */
         (function() {
-            window.playHeavyThud = () => {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const lowFilter = audioCtx.createBiquadFilter();
-                lowFilter.type = 'lowpass'; lowFilter.frequency.value = 80;
-                osc.type = 'sine'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.connect(lowFilter); lowFilter.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+            let slideNoise, slideGain;
+            const setupSlideSound = () => {
+                // Use the existing audioListener context instead of a new one
+                const audioCtx = camera.children[0].context; 
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                
+                slideNoise = audioCtx.createBufferSource();
+                slideNoise.buffer = buffer; 
+                slideNoise.loop = true;
+                
+                const sandFilter = audioCtx.createBiquadFilter();
+                sandFilter.type = 'bandpass'; 
+                sandFilter.frequency.value = 1800; 
+                sandFilter.Q.value = 1.2;
+                
+                slideGain = audioCtx.createGain(); 
+                slideGain.gain.value = 0;
+                
+                slideNoise.connect(sandFilter); 
+                sandFilter.connect(slideGain); 
+                slideGain.connect(audioCtx.destination);
+                slideNoise.start();
+            };
+
+            const originalAnimateSlide = animate;
+            animate = function() {
+                originalAnimateSlide();
+                // Ensure audio exists and starts once the player interacts
+                if (controls.isLocked) {
+                    if (!slideGain) setupSlideSound();
+                    const targetVol = isSliding ? 0.4 : 0;
+                    slideGain.gain.setTargetAtTime(targetVol, slideGain.context.currentTime, 0.05);
+                }
             };
         })();
 
