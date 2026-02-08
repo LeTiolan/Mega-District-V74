@@ -642,17 +642,26 @@
 
                 resolveCollisions();
 
-                if (canJump && isMoving && !isSliding) {
-                    const actualRunning = isRunning && stamina > 0;
-                    bobTimer += delta * (actualRunning ? 14 : 8);
-                    camera.position.y = Math.sin(bobTimer) * (actualRunning ? 0.03 : 0.01);
-                    camera.position.x = Math.cos(bobTimer * 0.5) * (actualRunning ? 0.02 : 0.008);
-                    camera.rotation.z = Math.sin(bobTimer * 0.5) * (actualRunning ? 0.012 : 0.004);
+               if (canJump && isMoving && !isSliding) {
+                    // Use our master variable to decide bobbing intensity
+                    const bobSpeed = canSprint ? 14 : 8;
+                    const bobIntensity = canSprint ? 1.0 : 0.4; 
+
+                    bobTimer += delta * bobSpeed;
+
+                    // Apply bobbing to camera (Y = Up/Down, X = Side/Side, Z = Tilt)
+                    camera.position.y = Math.sin(bobTimer) * (0.03 * bobIntensity);
+                    camera.position.x = Math.cos(bobTimer * 0.5) * (0.02 * bobIntensity);
+                    camera.rotation.z = Math.sin(bobTimer * 0.5) * (0.012 * bobIntensity);
+                    
+                    // Swing the arms
                     leftUpper.rotation.x = Math.sin(bobTimer) * 0.2;
                     rightUpper.rotation.x = Math.cos(bobTimer) * 0.2;
                 } else if (!isSliding) {
-                    camera.position.set(0,0,0); camera.rotation.z = 0;
-                    leftUpper.rotation.x = 0; rightUpper.rotation.x = 0;
+                    camera.position.set(0,0,0); 
+                    camera.rotation.z = 0;
+                    leftUpper.rotation.x = 0; 
+                    rightUpper.rotation.x = 0;
                 }
                 
                 if(window.updateAtmo) window.updateAtmo(time);
