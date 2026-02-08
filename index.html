@@ -183,6 +183,8 @@
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false, isRunning = false;
         let isExhausted = false;
         let canSprint = false;
+        let slideNoise, slideGain;
+let slideInitialized = false;
         let velocity = new THREE.Vector3(), direction = new THREE.Vector3();
         let prevTime = performance.now();
         let bobTimer = 0;
